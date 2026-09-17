@@ -1,0 +1,598 @@
+Next.js + TypeScript + Tailwind CSS + PostgreSQL + Prisma yordamida Windows kompyuterda offline/local network rejimida ishlaydigan Doctor/Dentist Management System yarat.
+
+Asosiy maqsad: Excel faylda hozir yuritilayotgan bemorlar hisobini zamonaviy web application ko'rinishiga o'tkazish. Dastur oddiy, tezkor, foydalanishga qulay va professional bo‘lsin. Ortiqcha funksiyalar, keraksiz modullar va murakkab UI qo‘shilmasin.
+
+========================
+TECHNOLOGY
+==========
+
+* Next.js
+* TypeScript
+* Tailwind CSS
+* PostgreSQL
+* Prisma ORM
+
+Next.js:
+
+* App Router
+* Server Components'dan imkon qadar foydalanish
+* Kerak bo‘lgan joylarda Client Components
+* Route Handlers / Server Actions orqali backend logic
+* Production uchun local/self-hosted ishlashga mos arxitektura
+
+Frontend:
+
+* React
+* TypeScript
+* Tailwind CSS
+
+Database:
+
+* PostgreSQL
+* Prisma ORM
+* Prisma migrations
+
+Authentication:
+
+* Secure session/cookie-based authentication
+* Password hashing
+* Role-based access control
+
+========================
+
+1. LOGIN VA USER SYSTEM
+   ========================
+
+Dastur ochilganda login sahifasi chiqsin.
+
+Login:
+
+* Username
+* Password
+* Login tugmasi
+
+Foydalanuvchi to‘g‘ri login/parol kiritgandan keyin tizimning asosiy dashboard sahifasiga kiradi.
+
+User modeli:
+
+users:
+
+* id
+* username
+* password_hash
+* full_name
+* role
+* is_active
+* created_at
+* updated_at
+
+ROLE enum:
+
+* ADMIN
+* DOCTOR
+* NURSE
+
+Parol database'da plain text ko‘rinishida saqlanmasin.
+Password hash ishlatilsin.
+
+Login qilgandan keyin user role aniqlansin va shu role bo‘yicha permission berilsin.
+
+Session xavfsiz cookie orqali boshqarilsin.
+
+Unauthorized user dashboard va himoyalangan sahifalarga kira olmasin.
+
+========================
+2. ROLE VA PERMISSION
+=====================
+
+ADMIN:
+
+* Barcha tizimga to‘liq kirish
+* Doctor qo‘shish
+* Hamshira qo‘shish
+* Userlarni tahrirlash
+* Userlarni aktiv/deaktiv qilish
+* Bemor qo‘shish
+* Bemorni tahrirlash
+* Bemorni o‘chirish
+* Tashrif qo‘shish
+* Tashrifni tahrirlash
+* Tashrifni o‘chirish
+* Hisobotlarni ko‘rish
+* Database backup/restore
+
+DOCTOR:
+
+* Bemorlarni ko‘rish
+* Bemor qo‘shish
+* Bemor ma’lumotlarini tahrirlash
+* Bemor tashriflarini ko‘rish
+* Yangi tashrif qo‘shish
+* Tashxis yozish
+* Bajarilgan ishlarni yozish
+* To‘lov summasini kiritish
+* Tashrifni tahrirlash
+* Hisobotlarni ko‘rish
+
+DOCTOR:
+
+* User qo‘sha olmaydi
+* Boshqa doctor qo‘sha olmaydi
+* Hamshira qo‘sha olmaydi
+* Admin boshqaruviga kira olmaydi
+
+NURSE:
+
+* Bemorlarni ko‘rish
+* Bemor qo‘shish
+* Bemor ma’lumotlarini tahrirlash
+* Bemor tashriflarini ko‘rish
+* Tashrif qo‘shish
+* Kelgan sana va qo‘shimcha ma’lumotlarni kiritish
+* To‘lovni kiritish
+* Hisobotlarni ko‘rish
+
+NURSE:
+
+* Doctor qo‘sha olmaydi
+* Hamshira qo‘sha olmaydi
+* User boshqara olmaydi
+* Admin funksiyalariga kira olmaydi
+
+Permission faqat UI'da tugmalarni yashirish bilan cheklanmasin.
+Server-side action, route handler va database operation oldidan ham role tekshirilsin.
+
+========================
+3. USER MANAGEMENT
+==================
+
+Faqat ADMIN user boshqaruviga kira oladi.
+
+Admin panelda:
+
+* Userlar ro‘yxati
+* Username
+* F.I.Sh.
+* Role
+* Status
+* Created date
+
+Funksiyalar:
+
+* Yangi doctor qo‘shish
+* Yangi hamshira qo‘shish
+* User tahrirlash
+* Password almashtirish
+* Userni deactivate/activate qilish
+
+MUHIM:
+
+ADMIN yangi ADMIN yaratishi shart emas.
+
+Tizimda boshlang‘ich bitta ADMIN account bo‘lsin.
+
+Faqat ADMIN:
+
+* DOCTOR yaratadi
+* NURSE yaratadi
+
+DOCTOR va NURSE boshqa userlarni yarata olmaydi.
+
+========================
+4. ASOSIY MA'LUMOTLAR
+=====================
+
+1. Bemorlar:
+
+patients:
+
+* id
+* full_name
+* birth_date
+* phone
+* created_at
+* updated_at
+
+2. Bemorning tashrifi / davolanish yozuvi:
+
+visits:
+
+* id
+* patient_id
+* doctor_id
+* diagnosis
+* visit_date
+* performed_work
+* payment_amount
+* complications
+* additional_info
+* created_at
+* updated_at
+
+RELATION:
+
+patients 1 ---- N visits
+
+users/doctor 1 ---- N visits
+
+Doctor tashrif yaratganda qaysi doctor bilan bog‘liqligi visits jadvalida saqlansin.
+
+Prisma schema orqali relationlar aniq belgilanib, foreign key constraints ishlatilsin.
+
+========================
+5. DASHBOARD
+============
+
+Faqat kerakli qisqa ma’lumotlar:
+
+* Jami bemorlar
+* Bugungi tashriflar
+* Bugungi tushum
+* Umumiy tushum
+
+Dashboarddagi ma’lumotlar joriy login qilgan user role'iga mos ko‘rsatilishi mumkin.
+
+Keraksiz grafiklar va murakkab analytics qo‘shilmasin.
+
+========================
+6. BEMORLAR
+===========
+
+Jadval:
+
+* №
+* Ism Familiya
+* Tug‘ilgan sana
+* Telefon
+* Oxirgi tashrif
+* Jami to‘lov
+
+Funksiyalar:
+
+* Bemor qo‘shish
+* Tahrirlash
+* O‘chirish
+* Qidirish
+* Bemorni ochish
+
+Qidiruv:
+
+* Ism/Familiya
+* Telefon
+
+Search server-side ishlasin va PostgreSQL querylari optimallashtirilsin.
+
+========================
+7. BEMOR PROFILI
+================
+
+Bemor tanlanganda:
+
+* Ism Familiya
+* Tug‘ilgan sana
+* Telefon
+
+Pastki qismida barcha tashriflar:
+
+* Sana
+* Doctor
+* Tashxis
+* Bajarilgan ishlar
+* To‘lov
+* Kasallik asoratlari
+* Qo‘shimcha ma’lumotlar
+
+Funksiyalar role bo‘yicha cheklansin.
+
+========================
+8. YANGI TASHRIF
+================
+
+Formada:
+
+* Bemor
+* Doctor
+* Kelgan sana
+* Tashxis
+* Bajarilgan ishlar
+* To‘lov summasi
+* Kasallik asoratlari
+* Qo‘shimcha ma’lumotlar
+
+Doctor maydoni:
+
+* Doctor o‘z accounti bilan kirgan bo‘lsa avtomatik tanlansin.
+* Admin kerak bo‘lsa doctorni tanlashi mumkin.
+
+========================
+9. HISOBOT / QIDIRUV
+====================
+
+Sana oralig‘i bo‘yicha:
+
+* Bemorlar
+* Tashriflar
+* Doctor
+* Umumiy to‘lov
+
+Masalan:
+
+01.03.2024 - 31.03.2024
+
+oralig‘idagi tashriflar va jami tushumni ko‘rsatish.
+
+========================
+10. EXCEL IMPORT
+================
+
+Mavjud Excel fayldagi ma’lumotlarni import qilish imkoniyati bo‘lsin.
+
+Excel ustunlari:
+
+* №
+* Bemor Ism Familiyasi
+* Tug‘ilgan yili
+* Telefon raqami
+* Bemor tashxisi
+* Bemor kelgan sanasi
+* Bajarilgan ishlar
+* To‘lov summasi
+* Kasalik asoratlari
+* Qo‘shimcha ma’lumotlar
+
+Excel import vaqtida bir bemorning bir nechta yozuvi bo‘lsa:
+
+patients jadvalida bitta bemor,
+visits jadvalida esa uning tashriflari alohida yozuv bo‘lsin.
+
+Import vaqtida duplicate patient yaratishdan saqlanish kerak.
+
+Excel parser quyidagi qiymatlarni imkon qadar to‘g‘ri qayta ishlasin:
+
+* Excel date serial
+* dd.mm.yyyy
+* yyyy
+* matn ko‘rinishidagi sana
+* telefon raqamlaridagi bo‘sh joylar va boshqa belgilar
+
+To‘lov summalarida turli formatlar uchrashi mumkin. Import parser imkon qadar raqamni ajratib olsin.
+
+No aniq yoki parse qilib bo‘lmaydigan qiymatlar yo‘qolmasin.
+
+========================
+11. UI
+======
+
+UI:
+
+* Zamonaviy
+* Minimal
+* Professional
+* O‘zbek tilida
+* Responsive desktop-oriented layout
+* Chap tomonda navigation menu
+* Main content area
+* Tez qidiruv
+* Data table
+* Formlar
+* Modal/dialog oynalar
+
+Tailwind CSS yordamida toza va bir xil dizayn yaratilsin.
+
+Ortiqcha animatsiyalar ishlatilmasin.
+
+Navigation menu role bo‘yicha avtomatik o‘zgarsin.
+
+ADMIN uchun:
+
+* Dashboard
+* Bemorlar
+* Tashriflar
+* Hisobotlar
+* User Management
+* Backup
+* Sozlamalar
+
+DOCTOR uchun:
+
+* Dashboard
+* Bemorlar
+* Tashriflar
+* Hisobotlar
+
+NURSE uchun:
+
+* Dashboard
+* Bemorlar
+* Tashriflar
+* Hisobotlar
+
+========================
+12. SECURITY
+============
+
+* Password hash
+* Secure session
+* HttpOnly cookie
+* SameSite cookie
+* Role-based access control
+* Server-side authorization
+* Protected routes
+* Unauthorized action bajarilmasin
+* User is_active = false bo‘lsa login qila olmasin
+* Sensitive data client-side'da ortiqcha expose qilinmasin
+* SQL injection'dan himoyalanish uchun Prisma ORM ishlatilsin
+
+UI'da tugmani yashirish xavfsizlik chorasi sifatida yetarli emas.
+
+Har bir muhim mutation server-side authorization orqali himoyalansin.
+
+========================
+13. DATABASE
+============
+
+Asosiy jadvallar:
+
+users
+patients
+visits
+
+Faqat kerak bo‘lsa qo‘shimcha texnik jadvallar yaratilsin.
+
+Prisma schema'da:
+
+* Primary key
+* Foreign key
+* Unique constraint
+* Index
+* Relation
+
+to‘g‘ri belgilanadi.
+
+Indexlar:
+
+* users.username
+* patients.full_name
+* patients.phone
+* visits.patient_id
+* visits.doctor_id
+* visits.visit_date
+
+Username unique bo‘lsin.
+
+Foreign key va delete/update qoidalari to‘g‘ri sozlansin.
+
+========================
+14. BACKUP
+==========
+
+Faqat ADMIN uchun.
+
+PostgreSQL database backup va restore imkoniyati bo‘lsin.
+
+Backup fayllari masalan:
+
+backup/
+
+* backup_2026-09-01.sql
+* backup_2026-09-02.sql
+
+Backup va restore operatsiyalari xavfsiz bajarilsin.
+
+========================
+15. LOCAL / OFFLINE DEPLOYMENT
+==============================
+
+Dastur internetga bog‘liq bo‘lmasin.
+
+Architecture local/self-hosted ishlashga mos bo‘lsin.
+
+Single PC:
+
+Browser
+↓
+Next.js local server
+↓
+PostgreSQL
+
+LAN:
+
+Doctor PC
+Nurse PC
+Admin PC
+↓
+Local Network
+↓
+Next.js Server
+↓
+PostgreSQL
+
+Production deployment uchun Next.js local serverda ishlashi kerak.
+
+Development rejimida:
+
+npm run dev
+
+Production rejimida:
+
+npm run build
+npm run start
+
+yoki mos production deployment usulidan foydalanilsin.
+
+Kerak bo‘lsa application'ni Windows startup bilan avtomatik ishga tushirish mumkin bo‘ladigan tarzda strukturalansin.
+
+========================
+16. PERFORMANCE
+===============
+
+* PostgreSQL querylar optimallashtirilsin
+* Keraksiz querylar kamaytirilsin
+* Prisma select/include faqat kerakli fieldlarni olsin
+* Large table rendering optimallashtirilsin
+* Search server-side ishlasin
+* Database indexlar ishlatilsin
+* N+1 query muammosiga yo‘l qo‘yilmasin
+* Dashboard querylari optimallashtirilsin
+* Keraksiz client-side state ishlatilmasin
+* Next.js Server Components'dan imkon qadar foydalanilsin
+* Keraksiz re-renderlar kamaytirilsin
+
+========================
+17. PROJECT STRUCTURE
+=====================
+
+Project keraksiz darajada murakkab architecture'ga bo‘linmasin.
+
+Misol sifatida:
+
+app/
+components/
+lib/
+prisma/
+types/
+public/
+
+Kerakli business logic alohida va tushunarli qilib tashkil qilinsin.
+
+Prisma:
+
+prisma/
+schema.prisma
+migrations/
+
+Database access uchun bitta markaziy Prisma client ishlatilsin.
+
+========================
+18. MUHIM TALABLAR
+==================
+
+* Dastur offline/local network ishlashi kerak.
+* Internet majburiy bo‘lmasin.
+* PostgreSQL local serverda ishlashi mumkin.
+* Browser orqali foydalaniladi.
+* Windows kompyuterlar uchun optimallashtiriladi.
+* Startup tez bo‘lsin.
+* Database querylar optimallashtirilsin.
+* Keraksiz architecture va keraksiz modullar qo‘shilmasin.
+* Kod tushunarli va maintainable bo‘lsin.
+* Excel ma’lumotlari imkon qadar to‘liq saqlansin.
+* Role va permission tizimi qat’iy ishlasin.
+* UI faqat kerakli funksiyalardan iborat bo‘lsin.
+* Barcha asosiy CRUD operatsiyalari validation bilan ishlasin.
+* Error handling va user-friendly error messages bo‘lsin.
+* Loading va empty states bo‘lsin.
+
+========================
+ASOSIY MAQSAD
+=============
+
+Excelda yuritilayotgan bemorlar ma’lumotlarini yo‘qotmasdan PostgreSQL'ga o‘tkazish va ularni Next.js + TypeScript + Tailwind CSS + Prisma + PostgreSQL asosidagi tez, sodda, xavfsiz va offline/local network Doctor System orqali boshqarish.
+
+Tizimda faqat 3 ta role mavjud:
+
+ADMIN
+DOCTOR
+NURSE
+
+Faqat ADMIN yangi DOCTOR va NURSE userlar yaratishi mumkin.

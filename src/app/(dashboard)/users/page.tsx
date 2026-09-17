@@ -1,0 +1,118 @@
+import { redirect } from "next/navigation";
+import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/auth";
+import { Topbar } from "@/components/Topbar";
+import { UserActions } from "@/components/UserActions";
+import { formatDate } from "@/lib/utils";
+
+export default async function UsersPage() {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+  if (user.role !== "ADMIN") {
+    return (
+      <>
+        <Topbar title="User Management" />
+        <main className="flex-1 p-6">
+          <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm">
+            Bu sahifaga kirish uchun ruxsat yo'q. Faqat ADMIN kira oladi.
+          </div>
+        </main>
+      </>
+    );
+  }
+
+  const users = await prisma.user.findMany({
+    orderBy: { created_at: "desc" },
+    select: {
+      id: true,
+      username: true,
+      full_name: true,
+      role: true,
+      is_active: true,
+      created_at: true,
+    },
+  });
+
+  return (
+    <>
+      <Topbar title="User Management" />
+      <main className="flex-1 p-6">
+        <div className="flex items-center justify-between mb-4">
+          <p className="text-sm text-slate-500">
+            Doctor va hamshiralarni boshqarish. ADMIN yaratib bo'lmaydi.
+          </p>
+          <UserActions mode="create" />
+        </div>
+
+        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-slate-50 text-left text-slate-600 border-b border-slate-200">
+                <th className="px-4 py-3 font-medium w-12">№</th>
+                <th className="px-4 py-3 font-medium">Username</th>
+                <th className="px-4 py-3 font-medium">F.I.Sh.</th>
+                <th className="px-4 py-3 font-medium">Role</th>
+                <th className="px-4 py-3 font-medium">Status</th>
+                <th className="px-4 py-3 font-medium">Yaratilgan</th>
+                <th className="px-4 py-3 font-medium text-right">Amallar</th>
+              </tr>
+            </thead>
+            <tbody>
+              {users.map((u, i) => (
+                <tr
+                  key={u.id}
+                  className="border-b border-slate-100 hover:bg-slate-50"
+                >
+                  <td className="px-4 py-3 text-slate-400">{i + 1}</td>
+                  <td className="px-4 py-3 font-medium text-slate-800">
+                    {u.username}
+                  </td>
+                  <td className="px-4 py-3 text-slate-700">{u.full_name}</td>
+                  <td className="px-4 py-3">
+                    <span
+                      className={`px-2 py-0.5 rounded text-xs font-medium ${
+                        u.role === "ADMIN"
+                          ? "bg-purple-100 text-purple-700"
+                          : u.role === "DOCTOR"
+                            ? "bg-blue-100 text-blue-700"
+                            : "bg-emerald-100 text-emerald-700"
+                      }`}
+                    >
+                      {u.role}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span
+                      className={`px-2 py-0.5 rounded text-xs font-medium ${
+                        u.is_active
+                          ? "bg-green-100 text-green-700"
+                          : "bg-red-100 text-red-700"
+                      }`}
+                    >
+                      {u.is_active ? "Aktiv" : "Deaktiv"}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-slate-500">
+                    {formatDate(u.created_at)}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <UserActions
+                      mode="row"
+                      user={{
+                        id: u.id,
+                        username: u.username,
+                        full_name: u.full_name,
+                        role: u.role,
+                        is_active: u.is_active,
+                      }}
+                    />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </main>
+    </>
+  );
+}

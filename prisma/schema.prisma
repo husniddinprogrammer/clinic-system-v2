@@ -1,0 +1,65 @@
+// Prisma schema for Clinic Management System
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  DOCTOR
+  NURSE
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  username     String   @unique
+  password_hash String
+  full_name    String
+  role         Role     @default(NURSE)
+  is_active    Boolean  @default(true)
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  visits Visit[]
+
+  @@index([role])
+}
+
+model Patient {
+  id         Int       @id @default(autoincrement())
+  full_name  String
+  birth_date DateTime?
+  phone      String?
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+
+  visits Visit[]
+
+  @@index([full_name])
+  @@index([phone])
+}
+
+model Visit {
+  id              Int       @id @default(autoincrement())
+  patient_id      Int
+  doctor_id       Int
+  diagnosis       String?
+  visit_date      DateTime  @default(now())
+  performed_work  String?
+  payment_amount  Decimal?  @db.Decimal(12, 2)
+  complications   String?
+  additional_info String?
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+
+  patient Patient @relation(fields: [patient_id], references: [id], onDelete: Cascade)
+  doctor  User    @relation(fields: [doctor_id], references: [id], onDelete: Restrict)
+
+  @@index([patient_id])
+  @@index([doctor_id])
+  @@index([visit_date])
+}
