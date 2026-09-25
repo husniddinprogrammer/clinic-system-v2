@@ -27,7 +27,6 @@ export type VisitWithRelations = {
   visit_date: Date;
   performed_work: string | null;
   payment_amount: number | null;
-  complications: string | null;
   additional_info: string | null;
   created_at: Date;
   patient: { id: number; full_name: string };

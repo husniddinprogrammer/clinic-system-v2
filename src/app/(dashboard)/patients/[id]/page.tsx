@@ -118,6 +118,7 @@ export default async function PatientProfilePage({
             <VisitActions
               mode="create"
               doctors={doctors}
+              fixedPatientId={patient.id}
               currentDoctorId={user.id}
               isAdmin={isAdmin}
             />
@@ -133,7 +134,6 @@ export default async function PatientProfilePage({
                 <th className="px-4 py-3 font-medium">Tashxis</th>
                 <th className="px-4 py-3 font-medium">Bajarilgan ishlar</th>
                 <th className="px-4 py-3 font-medium text-right">To'lov</th>
-                <th className="px-4 py-3 font-medium">Asoratlar</th>
                 <th className="px-4 py-3 font-medium">Qo'shimcha</th>
                 <th className="px-4 py-3 font-medium text-right">Amallar</th>
               </tr>
@@ -142,7 +142,7 @@ export default async function PatientProfilePage({
               {patient.visits.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={8}
+                    colSpan={7}
                     className="px-4 py-12 text-center text-slate-400"
                   >
                     Tashriflar yo'q.
@@ -170,9 +170,6 @@ export default async function PatientProfilePage({
                       {formatMoney(Number(v.payment_amount ?? 0))}
                     </td>
                     <td className="px-4 py-3 text-slate-600 max-w-xs">
-                      {v.complications ?? "-"}
-                    </td>
-                    <td className="px-4 py-3 text-slate-600 max-w-xs">
                       {v.additional_info ?? "-"}
                     </td>
                     <td className="px-4 py-3 text-right">
@@ -189,10 +186,10 @@ export default async function PatientProfilePage({
                             v.payment_amount != null
                               ? String(v.payment_amount)
                               : "",
-                          complications: v.complications ?? "",
                           additional_info: v.additional_info ?? "",
                         }}
                         doctors={doctors}
+                        fixedPatientId={v.patient_id}
                         currentDoctorId={user.id}
                         isAdmin={isAdmin}
                         canEdit={canEditVisit}

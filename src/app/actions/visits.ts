@@ -34,10 +34,10 @@ export async function createVisit(formData: FormData) {
   const diagnosis = String(formData.get("diagnosis") ?? "").trim() || null;
   const performed_work = String(formData.get("performed_work") ?? "").trim() || null;
   const payment_amount = num(String(formData.get("payment_amount") ?? ""));
-  const complications = String(formData.get("complications") ?? "").trim() || null;
   const additional_info = String(formData.get("additional_info") ?? "").trim() || null;
 
   if (!patient_id || !doctor_id) throw new Error("Bemor va doctor tanlanishi shart.");
+  if (payment_amount === null) throw new Error("To'lov summasi kiritilishi shart.");
 
   await prisma.visit.create({
     data: {
@@ -47,7 +47,6 @@ export async function createVisit(formData: FormData) {
       diagnosis,
       performed_work,
       payment_amount,
-      complications,
       additional_info,
     },
   });
@@ -70,10 +69,10 @@ export async function updateVisit(formData: FormData) {
   const diagnosis = String(formData.get("diagnosis") ?? "").trim() || null;
   const performed_work = String(formData.get("performed_work") ?? "").trim() || null;
   const payment_amount = num(String(formData.get("payment_amount") ?? ""));
-  const complications = String(formData.get("complications") ?? "").trim() || null;
   const additional_info = String(formData.get("additional_info") ?? "").trim() || null;
 
   if (!id || !patient_id || !doctor_id) throw new Error("Noto'g'ri ma'lumot.");
+  if (payment_amount === null) throw new Error("To'lov summasi kiritilishi shart.");
 
   await prisma.visit.update({
     where: { id },
@@ -84,7 +83,6 @@ export async function updateVisit(formData: FormData) {
       diagnosis,
       performed_work,
       payment_amount,
-      complications,
       additional_info,
     },
   });

@@ -21,7 +21,6 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     "patients:view",
     "patients:create",
     "patients:edit",
-    "patients:delete",
     "visits:view",
     "visits:create",
     "visits:edit",

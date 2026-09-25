@@ -29,7 +29,7 @@ export default async function VisitsPage({
     where.visit_date = { ...where.visit_date, lte: toDate };
   }
 
-  const [visits, doctors, patients] = await Promise.all([
+  const [visits, doctors] = await Promise.all([
     prisma.visit.findMany({
       where,
       orderBy: { visit_date: "desc" },
@@ -44,13 +44,6 @@ export default async function VisitsPage({
           where: { role: "DOCTOR", is_active: true },
           select: { id: true, full_name: true },
           orderBy: { full_name: "asc" },
-        })
-      : [],
-    canCreate
-      ? prisma.patient.findMany({
-          select: { id: true, full_name: true },
-          orderBy: { full_name: "asc" },
-          take: 1000,
         })
       : [],
   ]);
@@ -98,7 +91,6 @@ export default async function VisitsPage({
             <VisitActions
               mode="create"
               doctors={doctors}
-              patients={patients}
               currentDoctorId={user.id}
               isAdmin={isAdmin}
             />
@@ -168,6 +160,7 @@ export default async function VisitsPage({
                         visit={{
                           id: v.id,
                           patient_id: v.patient_id,
+                          patient_name: v.patient.full_name,
                           doctor_id: v.doctor_id,
                           visit_date: toInputDate(v.visit_date),
                           diagnosis: v.diagnosis ?? "",
@@ -176,7 +169,6 @@ export default async function VisitsPage({
                             v.payment_amount != null
                               ? String(v.payment_amount)
                               : "",
-                          complications: v.complications ?? "",
                           additional_info: v.additional_info ?? "",
                         }}
                         doctors={doctors}

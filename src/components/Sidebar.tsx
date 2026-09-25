@@ -17,6 +17,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Tashriflar", href: "/visits", icon: "V", roles: ["ADMIN", "DOCTOR", "NURSE"] },
   { label: "Hisobotlar", href: "/reports", icon: "H", roles: ["ADMIN", "DOCTOR", "NURSE"] },
   { label: "Excel Import", href: "/import", icon: "E", roles: ["ADMIN", "DOCTOR", "NURSE"] },
+  { label: "Doktorlar", href: "/doctors", icon: "D", roles: ["ADMIN"] },
   { label: "User Management", href: "/users", icon: "U", roles: ["ADMIN"] },
   { label: "Backup", href: "/backup", icon: "B", roles: ["ADMIN"] },
   { label: "Sozlamalar", href: "/settings", icon: "S", roles: ["ADMIN"] },

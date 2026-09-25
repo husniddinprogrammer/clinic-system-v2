@@ -12,6 +12,22 @@ type PatientData = {
   phone: string;
 };
 
+const PHONE_PATTERN = String.raw`\d{2} \d{3} \d{2} \d{2}`;
+
+function formatPhoneValue(value: string): string {
+  let digits = value.replace(/\D/g, "");
+  if (digits.startsWith("998") && digits.length > 9) {
+    digits = digits.slice(3);
+  }
+  digits = digits.slice(0, 9);
+  const parts: string[] = [];
+  if (digits.length > 0) parts.push(digits.slice(0, 2));
+  if (digits.length > 2) parts.push(digits.slice(2, 5));
+  if (digits.length > 5) parts.push(digits.slice(5, 7));
+  if (digits.length > 7) parts.push(digits.slice(7, 9));
+  return parts.join(" ");
+}
+
 function PatientForm({
   action,
   initial,
@@ -23,6 +39,9 @@ function PatientForm({
 }) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState("");
+  const [phone, setPhone] = useState(() =>
+    formatPhoneValue(initial?.phone ?? ""),
+  );
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -64,6 +83,7 @@ function PatientForm({
           type="date"
           name="birth_date"
           defaultValue={initial?.birth_date ?? ""}
+          required
           className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
       </div>
@@ -73,7 +93,13 @@ function PatientForm({
         </label>
         <input
           name="phone"
-          defaultValue={initial?.phone ?? ""}
+          value={phone}
+          onChange={(e) => setPhone(formatPhoneValue(e.target.value))}
+          placeholder="91 123 11 44"
+          required
+          inputMode="numeric"
+          pattern={PHONE_PATTERN}
+          title="Format: 91 123 11 44"
           className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
       </div>

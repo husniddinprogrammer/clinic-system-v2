@@ -19,10 +19,12 @@ export async function createPatient(formData: FormData) {
   }
 
   const full_name = String(formData.get("full_name") ?? "").trim();
-  const phone = String(formData.get("phone") ?? "").trim() || null;
+  const phone = String(formData.get("phone") ?? "").trim();
   const birth_date = parseBirthDate(String(formData.get("birth_date") ?? ""));
 
-  if (!full_name) throw new Error("Ism kiritilishi shart.");
+  if (!full_name || !phone || !birth_date) {
+    throw new Error("Barcha maydonlar to'ldirilishi shart.");
+  }
 
   await prisma.patient.create({
     data: { full_name, phone, birth_date },
@@ -40,10 +42,12 @@ export async function updatePatient(formData: FormData) {
 
   const id = Number(formData.get("id"));
   const full_name = String(formData.get("full_name") ?? "").trim();
-  const phone = String(formData.get("phone") ?? "").trim() || null;
+  const phone = String(formData.get("phone") ?? "").trim();
   const birth_date = parseBirthDate(String(formData.get("birth_date") ?? ""));
 
-  if (!id || !full_name) throw new Error("Noto'g'ri ma'lumot.");
+  if (!id || !full_name || !phone || !birth_date) {
+    throw new Error("Barcha maydonlar to'ldirilishi shart.");
+  }
 
   await prisma.patient.update({
     where: { id },

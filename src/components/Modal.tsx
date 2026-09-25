@@ -7,11 +7,13 @@ export function Modal({
   onClose,
   title,
   children,
+  wide = false,
 }: {
   open: boolean;
   onClose: () => void;
   title: string;
   children: React.ReactNode;
+  wide?: boolean;
 }) {
   useEffect(() => {
     if (!open) return;
@@ -30,7 +32,11 @@ export function Modal({
         className="absolute inset-0 bg-black/40"
         onClick={onClose}
       />
-      <div className="relative bg-white rounded-xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+      <div
+        className={`relative bg-white rounded-xl shadow-xl w-full ${
+          wide ? "max-w-2xl" : "max-w-md"
+        } max-h-[90vh] overflow-y-auto`}
+      >
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200">
           <h3 className="font-semibold text-slate-800">{title}</h3>
           <button

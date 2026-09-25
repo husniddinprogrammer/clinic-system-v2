@@ -167,7 +167,7 @@ export async function POST(request: NextRequest) {
 
     for (let i = startIdx; i < rows.length; i++) {
       const row = rows[i] ?? [];
-      // Columns: №, name, birth year, phone, diagnosis, visit date, performed work, payment, complications, additional
+      // Columns: №, name, birth year, phone, diagnosis, visit date, performed work, payment, complications (ignored), additional
       const name = parseText(row[1]);
       if (!name) {
         skipped++;
@@ -180,7 +180,6 @@ export async function POST(request: NextRequest) {
       const visitDate = parseExcelDate(row[5]);
       const performedWork = parseText(row[6]);
       const payment = parsePayment(row[7]);
-      const complications = parseText(row[8]);
       const additionalInfo = parseText(row[9]);
 
       // Dedup key: normalized name + phone
@@ -215,7 +214,7 @@ export async function POST(request: NextRequest) {
 
       // Create visit if any visit-related field has data
       const hasVisitData =
-        diagnosis || visitDate || performedWork || payment || complications || additionalInfo;
+        diagnosis || visitDate || performedWork || payment || additionalInfo;
 
       if (hasVisitData) {
         await prisma.visit.create({
@@ -226,7 +225,6 @@ export async function POST(request: NextRequest) {
             visit_date: visitDate ?? new Date(),
             performed_work: performedWork,
             payment_amount: payment,
-            complications,
             additional_info: additionalInfo,
           },
         });

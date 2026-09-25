@@ -60,9 +60,18 @@ export async function getSession(): Promise<SessionPayload | null> {
   }
 }
 
+// TEMPORARY: auto-login as admin when no session (login page hidden)
+const AUTO_LOGIN_USERNAME = "admin";
+
 export async function getCurrentUser() {
   const session = await getSession();
-  if (!session) return null;
+  if (!session) {
+    if (!AUTO_LOGIN_USERNAME) return null;
+    return prisma.user.findUnique({
+      where: { username: AUTO_LOGIN_USERNAME },
+      select: { id: true, username: true, full_name: true, role: true, is_active: true },
+    });
+  }
 
   const user = await prisma.user.findUnique({
     where: { id: session.userId },

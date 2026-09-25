@@ -3,29 +3,38 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Modal } from "./Modal";
+import { PatientSearchInput } from "./PatientSearchInput";
 import { createVisit, updateVisit, deleteVisit } from "@/app/actions/visits";
 import { toInputDate } from "@/lib/utils";
 
 export type DoctorOption = { id: number; full_name: string };
-export type PatientOption = { id: number; full_name: string };
 
 type VisitData = {
   id: number;
   patient_id: number;
+  patient_name?: string;
   doctor_id: number;
   visit_date: string;
   diagnosis: string;
   performed_work: string;
   payment_amount: string;
-  complications: string;
   additional_info: string;
 };
+
+function formatPayment(value: string): string {
+  const cleaned = value.replace(/[^\d.]/g, "");
+  const dotIdx = cleaned.indexOf(".");
+  const intPart = dotIdx === -1 ? cleaned : cleaned.slice(0, dotIdx);
+  const decPart = dotIdx === -1 ? "" : cleaned.slice(dotIdx + 1).replace(/\./g, "").slice(0, 2);
+  const formatted = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  return dotIdx === -1 ? formatted : `${formatted}.${decPart}`;
+}
 
 function VisitForm({
   action,
   initial,
   doctors,
-  patients,
+  fixedPatientId,
   currentDoctorId,
   isAdmin,
   onClose,
@@ -33,13 +42,16 @@ function VisitForm({
   action: (formData: FormData) => Promise<void>;
   initial?: Partial<VisitData>;
   doctors: DoctorOption[];
-  patients?: PatientOption[];
+  fixedPatientId?: number;
   currentDoctorId?: number;
   isAdmin: boolean;
   onClose: () => void;
 }) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState("");
+  const [payment, setPayment] = useState(() =>
+    formatPayment(initial?.payment_amount ?? ""),
+  );
 
   const defaultDoctor =
     initial?.doctor_id ?? (isAdmin ? 0 : currentDoctorId ?? 0);
@@ -59,40 +71,28 @@ function VisitForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-2.5">
+        <div className="col-span-2 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-2.5">
           {error}
         </div>
       )}
 
-      {patients && (
+      {fixedPatientId ? (
+        <input type="hidden" name="patient_id" value={fixedPatientId} />
+      ) : (
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1.5">
             Bemor
           </label>
-          <select
-            name="patient_id"
-            defaultValue={String(initial?.patient_id ?? "")}
-            required
-            className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="" disabled>
-              Bemor tanlang
-            </option>
-            {patients.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.full_name}
-              </option>
-            ))}
-          </select>
+          <PatientSearchInput
+            initialId={initial?.patient_id}
+            initialName={initial?.patient_name}
+          />
         </div>
       )}
-      {!patients && initial?.patient_id && (
-        <input type="hidden" name="patient_id" value={initial.patient_id} />
-      )}
 
-      <div>
+      <div className={fixedPatientId ? "col-span-2" : ""}>
         <label className="block text-sm font-medium text-slate-700 mb-1.5">
           Doctor
         </label>
@@ -131,12 +131,28 @@ function VisitForm({
 
       <div>
         <label className="block text-sm font-medium text-slate-700 mb-1.5">
+          To'lov summasi
+        </label>
+        <input
+          type="text"
+          name="payment_amount"
+          inputMode="numeric"
+          required
+          value={payment}
+          onChange={(e) => setPayment(formatPayment(e.target.value))}
+          className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          placeholder="100 000"
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-slate-700 mb-1.5">
           Tashxis
         </label>
         <textarea
           name="diagnosis"
           defaultValue={initial?.diagnosis ?? ""}
-          rows={2}
+          rows={3}
           className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
       </div>
@@ -148,32 +164,7 @@ function VisitForm({
         <textarea
           name="performed_work"
           defaultValue={initial?.performed_work ?? ""}
-          rows={2}
-          className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-slate-700 mb-1.5">
-          To'lov summasi
-        </label>
-        <input
-          type="text"
-          name="payment_amount"
-          defaultValue={initial?.payment_amount ?? ""}
-          className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          placeholder="0"
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-slate-700 mb-1.5">
-          Kasallik asoratlari
-        </label>
-        <textarea
-          name="complications"
-          defaultValue={initial?.complications ?? ""}
-          rows={2}
+          rows={3}
           className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
       </div>
@@ -185,14 +176,14 @@ function VisitForm({
         <textarea
           name="additional_info"
           defaultValue={initial?.additional_info ?? ""}
-          rows={2}
+          rows={3}
           className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
       </div>
 
       {initial?.id && <input type="hidden" name="id" value={initial.id} />}
 
-      <div className="flex gap-2 pt-2">
+      <div className="col-span-2 flex gap-2 pt-2">
         <button
           type="submit"
           disabled={pending}
@@ -216,7 +207,7 @@ export function VisitActions({
   mode,
   visit,
   doctors,
-  patients,
+  fixedPatientId,
   currentDoctorId,
   isAdmin,
   canEdit,
@@ -225,7 +216,7 @@ export function VisitActions({
   mode: "create" | "row";
   visit?: VisitData;
   doctors: DoctorOption[];
-  patients?: PatientOption[];
+  fixedPatientId?: number;
   currentDoctorId?: number;
   isAdmin: boolean;
   canEdit?: boolean;
@@ -251,11 +242,12 @@ export function VisitActions({
           open={showCreate}
           onClose={() => setShowCreate(false)}
           title="Yangi tashrif qo'shish"
+          wide
         >
           <VisitForm
             action={createVisit}
             doctors={doctors}
-            patients={patients}
+            fixedPatientId={fixedPatientId}
             currentDoctorId={currentDoctorId}
             isAdmin={isAdmin}
             onClose={() => setShowCreate(false)}
@@ -308,11 +300,13 @@ export function VisitActions({
         open={showEdit}
         onClose={() => setShowEdit(false)}
         title="Tashrifni tahrirlash"
+        wide
       >
         <VisitForm
           action={updateVisit}
           initial={visit}
           doctors={doctors}
+          fixedPatientId={fixedPatientId}
           currentDoctorId={currentDoctorId}
           isAdmin={isAdmin}
           onClose={() => setShowEdit(false)}
