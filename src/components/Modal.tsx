@@ -34,8 +34,8 @@ export function Modal({
       />
       <div
         className={`relative bg-white rounded-xl shadow-xl w-full ${
-          wide ? "max-w-2xl" : "max-w-md"
-        } max-h-[90vh] overflow-y-auto`}
+          wide ? "max-w-4xl" : "max-w-md"
+        } max-h-[95vh] overflow-y-auto`}
       >
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200">
           <h3 className="font-semibold text-slate-800">{title}</h3>

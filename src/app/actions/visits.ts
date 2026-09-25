@@ -38,6 +38,9 @@ export async function createVisit(formData: FormData) {
 
   if (!patient_id || !doctor_id) throw new Error("Bemor va doctor tanlanishi shart.");
   if (payment_amount === null) throw new Error("To'lov summasi kiritilishi shart.");
+  if (!diagnosis || !performed_work) {
+    throw new Error("Tashxis va bajarilgan ishlar to'ldirilishi shart.");
+  }
 
   await prisma.visit.create({
     data: {
@@ -73,6 +76,9 @@ export async function updateVisit(formData: FormData) {
 
   if (!id || !patient_id || !doctor_id) throw new Error("Noto'g'ri ma'lumot.");
   if (payment_amount === null) throw new Error("To'lov summasi kiritilishi shart.");
+  if (!diagnosis || !performed_work) {
+    throw new Error("Tashxis va bajarilgan ishlar to'ldirilishi shart.");
+  }
 
   await prisma.visit.update({
     where: { id },

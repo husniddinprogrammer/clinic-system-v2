@@ -38,6 +38,22 @@ export function toInputDate(date: Date | string | null): string {
   return `${year}-${month}-${day}`;
 }
 
+export const PHONE_PATTERN = String.raw`\d{2} \d{3} \d{2} \d{2}`;
+
+export function formatPhoneValue(value: string): string {
+  let digits = value.replace(/\D/g, "");
+  if (digits.startsWith("998") && digits.length > 9) {
+    digits = digits.slice(3);
+  }
+  digits = digits.slice(0, 9);
+  const parts: string[] = [];
+  if (digits.length > 0) parts.push(digits.slice(0, 2));
+  if (digits.length > 2) parts.push(digits.slice(2, 5));
+  if (digits.length > 5) parts.push(digits.slice(5, 7));
+  if (digits.length > 7) parts.push(digits.slice(7, 9));
+  return parts.join(" ");
+}
+
 export function calcAge(birthDate: Date | null): string {
   if (!birthDate) return "-";
   const now = new Date();

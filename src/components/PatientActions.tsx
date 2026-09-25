@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Modal } from "./Modal";
 import { createPatient, updatePatient, deletePatient } from "@/app/actions/patients";
+import { PHONE_PATTERN, formatPhoneValue } from "@/lib/utils";
 
 type PatientData = {
   id: number;
@@ -11,22 +12,6 @@ type PatientData = {
   birth_date: string;
   phone: string;
 };
-
-const PHONE_PATTERN = String.raw`\d{2} \d{3} \d{2} \d{2}`;
-
-function formatPhoneValue(value: string): string {
-  let digits = value.replace(/\D/g, "");
-  if (digits.startsWith("998") && digits.length > 9) {
-    digits = digits.slice(3);
-  }
-  digits = digits.slice(0, 9);
-  const parts: string[] = [];
-  if (digits.length > 0) parts.push(digits.slice(0, 2));
-  if (digits.length > 2) parts.push(digits.slice(2, 5));
-  if (digits.length > 5) parts.push(digits.slice(5, 7));
-  if (digits.length > 7) parts.push(digits.slice(7, 9));
-  return parts.join(" ");
-}
 
 function PatientForm({
   action,
