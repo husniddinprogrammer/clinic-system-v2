@@ -29,7 +29,7 @@ export function LoginForm() {
         return;
       }
 
-      router.push("/dashboard");
+      router.push("/visits");
       router.refresh();
     } catch {
       setError("Serverga ulanib bo'lmadi.");

@@ -3,24 +3,24 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { Role } from "@prisma/client";
+import { Icon, IconName } from "./icons";
 
 type NavItem = {
   label: string;
   href: string;
-  icon: string;
+  icon: IconName;
   roles: Role[];
 };
 
 const NAV_ITEMS: NavItem[] = [
-  { label: "Dashboard", href: "/dashboard", icon: "M", roles: ["ADMIN", "DOCTOR", "NURSE"] },
-  { label: "Bemorlar", href: "/patients", icon: "P", roles: ["ADMIN", "DOCTOR", "NURSE"] },
-  { label: "Tashriflar", href: "/visits", icon: "V", roles: ["ADMIN", "DOCTOR", "NURSE"] },
-  { label: "Hisobotlar", href: "/reports", icon: "H", roles: ["ADMIN", "DOCTOR", "NURSE"] },
-  { label: "Excel Import", href: "/import", icon: "E", roles: ["ADMIN", "DOCTOR", "NURSE"] },
-  { label: "Doktorlar", href: "/doctors", icon: "D", roles: ["ADMIN"] },
-  { label: "User Management", href: "/users", icon: "U", roles: ["ADMIN"] },
-  { label: "Backup", href: "/backup", icon: "B", roles: ["ADMIN"] },
-  { label: "Sozlamalar", href: "/settings", icon: "S", roles: ["ADMIN"] },
+  { label: "Tashriflar", href: "/visits", icon: "visits", roles: ["ADMIN", "DOCTOR", "NURSE"] },
+  { label: "Bemorlar", href: "/patients", icon: "patients", roles: ["ADMIN", "DOCTOR", "NURSE"] },
+  { label: "Hisobotlar", href: "/reports", icon: "reports", roles: ["ADMIN", "DOCTOR", "NURSE"] },
+  { label: "Excel Import", href: "/import", icon: "import", roles: ["ADMIN", "DOCTOR", "NURSE"] },
+  { label: "Doktorlar", href: "/doctors", icon: "doctors", roles: ["ADMIN"] },
+  { label: "User Management", href: "/users", icon: "users", roles: ["ADMIN"] },
+  { label: "Backup", href: "/backup", icon: "backup", roles: ["ADMIN"] },
+  { label: "Sozlamalar", href: "/settings", icon: "settings", roles: ["ADMIN"] },
 ];
 
 export function Sidebar({ role, fullName }: { role: Role; fullName: string }) {
@@ -56,9 +56,7 @@ export function Sidebar({ role, fullName }: { role: Role; fullName: string }) {
                   : "text-slate-300 hover:bg-slate-700 hover:text-white"
               }`}
             >
-              <span className="w-5 h-5 flex items-center justify-center text-xs font-bold rounded bg-slate-600/50">
-                {item.icon}
-              </span>
+              <Icon name={item.icon} className="w-5 h-5 shrink-0" />
               {item.label}
             </Link>
           );
