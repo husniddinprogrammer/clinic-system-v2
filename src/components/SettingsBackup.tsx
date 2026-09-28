@@ -10,10 +10,13 @@ type BackupFile = {
   created: string;
 };
 
+const BACKUP_PAGE_SIZE = 20;
+
 export function SettingsBackup() {
   const router = useRouter();
   const restoreRef = useRef<HTMLInputElement>(null);
   const [files, setFiles] = useState<BackupFile[]>([]);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [restoreFile, setRestoreFile] = useState<File | null>(null);
@@ -149,6 +152,13 @@ export function SettingsBackup() {
     );
   }
 
+  const totalPages = Math.max(1, Math.ceil(files.length / BACKUP_PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pageFiles = files.slice(
+    (currentPage - 1) * BACKUP_PAGE_SIZE,
+    currentPage * BACKUP_PAGE_SIZE,
+  );
+
   return (
     <div className="bg-white rounded-xl border border-slate-200 p-6">
       <div className="flex items-center justify-between mb-4">
@@ -226,7 +236,7 @@ export function SettingsBackup() {
                 </td>
               </tr>
             ) : (
-              files.map((f) => (
+              pageFiles.map((f) => (
                 <tr
                   key={f.name}
                   className="border-b border-slate-100 hover:bg-slate-50"
@@ -269,6 +279,44 @@ export function SettingsBackup() {
             )}
           </tbody>
         </table>
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between px-4 py-3 border-t border-slate-200 bg-slate-50">
+            <span className="text-sm text-slate-500">
+              Jami: <strong className="text-slate-700">{files.length}</strong> ·
+              Sahifa <strong className="text-slate-700">{currentPage}</strong> /{" "}
+              {totalPages}
+            </span>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setPage(currentPage - 1)}
+                disabled={currentPage <= 1}
+                className="px-3 py-1.5 rounded-lg border border-slate-300 text-sm text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:hover:bg-transparent"
+              >
+                ‹
+              </button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                <button
+                  key={p}
+                  onClick={() => setPage(p)}
+                  className={`px-3 py-1.5 rounded-lg border text-sm ${
+                    p === currentPage
+                      ? "bg-blue-600 border-blue-600 text-white font-medium"
+                      : "border-slate-300 text-slate-600 hover:bg-slate-100"
+                  }`}
+                >
+                  {p}
+                </button>
+              ))}
+              <button
+                onClick={() => setPage(currentPage + 1)}
+                disabled={currentPage >= totalPages}
+                className="px-3 py-1.5 rounded-lg border border-slate-300 text-sm text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:hover:bg-transparent"
+              >
+                ›
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

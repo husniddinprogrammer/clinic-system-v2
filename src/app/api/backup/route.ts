@@ -33,34 +33,73 @@ function isValidFileName(name: string): boolean {
   );
 }
 
-async function restoreFromFile(filePath: string) {
-  const psql = path.join(PG_BIN, "psql.exe");
+function psqlArgs(extra: string[]): string[] {
+  return [
+    "-h", PG_HOST,
+    "-p", PG_PORT,
+    "-U", PG_USER,
+    "-d", PG_DATABASE,
+    "-v", "ON_ERROR_STOP=1",
+    ...extra,
+  ];
+}
+
+async function createBackupFile(prefix: string): Promise<string> {
+  await mkdir(BACKUP_DIR, { recursive: true });
+  const now = new Date();
+  const stamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}_${String(now.getHours()).padStart(2, "0")}-${String(now.getMinutes())}`;
+  const fileName = `${prefix}_${stamp}.sql`;
+  const filePath = path.join(BACKUP_DIR, fileName);
+  const pgDump = path.join(PG_BIN, "pg_dump.exe");
   await execFileAsync(
-    psql,
-    [
-      "-h", PG_HOST,
-      "-p", PG_PORT,
-      "-U", PG_USER,
-      "-d", PG_DATABASE,
-      "-f", filePath,
-    ],
+    pgDump,
+    ["-h", PG_HOST, "-p", PG_PORT, "-U", PG_USER, "-d", PG_DATABASE, "-f", filePath],
     { env: getEnv(), maxBuffer: 50 * 1024 * 1024 },
   );
+  return fileName;
+}
+
+async function restoreFromFile(filePath: string) {
+  const psql = path.join(PG_BIN, "psql.exe");
+
+  // Restore'dan oldin joriy holatni avtomatik backup qilish —
+  // xatolik bo'lsa qaytarib olish mumkin bo'ladi
+  await createBackupFile("pre_restore");
+
+  // Jadvallar mavjud bo'lsa CREATE TABLE/COPY konflikt beradi.
+  // Shu sababli public schemani tozalab, dump'ni toza bazaga qo'llaymiz.
+  await execFileAsync(
+    psql,
+    psqlArgs([
+      "-c",
+      "DROP SCHEMA public CASCADE; CREATE SCHEMA public; GRANT ALL ON SCHEMA public TO public;",
+    ]),
+    { env: getEnv(), maxBuffer: 50 * 1024 * 1024 },
+  );
+
+  try {
+    await execFileAsync(psql, psqlArgs(["-f", filePath]), {
+      env: getEnv(),
+      maxBuffer: 50 * 1024 * 1024,
+    });
+  } catch (e) {
+    const err = e as { stderr?: string; message?: string };
+    const detail = (err.stderr || err.message || "Restore xatoligi").trim();
+    throw new Error(
+      `Restore xatoligi: ${detail.split("\n").filter((l) => /error|xatolik/i.test(l)).slice(0, 5).join(" | ") || detail.slice(0, 400)}`,
+    );
+  }
 
   // Restore'dan keyin sequence'larni sinxronlash —
   // aks holda yangi yozuvlar "unique constraint" xatosi beradi
   await execFileAsync(
     psql,
-    [
-      "-h", PG_HOST,
-      "-p", PG_PORT,
-      "-U", PG_USER,
-      "-d", PG_DATABASE,
+    psqlArgs([
       "-c",
       `SELECT setval('"User_id_seq"', COALESCE((SELECT MAX(id) FROM "User"), 1));
        SELECT setval('"Patient_id_seq"', COALESCE((SELECT MAX(id) FROM "Patient"), 1));
        SELECT setval('"Visit_id_seq"', COALESCE((SELECT MAX(id) FROM "Visit"), 1));`,
-    ],
+    ]),
     { env: getEnv(), maxBuffer: 50 * 1024 * 1024 },
   );
 }
@@ -174,25 +213,7 @@ export async function POST(request: NextRequest) {
     const action = body.action;
 
     if (action === "backup") {
-      await mkdir(BACKUP_DIR, { recursive: true });
-      const now = new Date();
-      const stamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}_${String(now.getHours()).padStart(2, "0")}-${String(now.getMinutes()).padStart(2, "0")}`;
-      const fileName = `backup_${stamp}.sql`;
-      const filePath = path.join(BACKUP_DIR, fileName);
-
-      const pgDump = path.join(PG_BIN, "pg_dump.exe");
-      await execFileAsync(
-        pgDump,
-        [
-          "-h", PG_HOST,
-          "-p", PG_PORT,
-          "-U", PG_USER,
-          "-d", PG_DATABASE,
-          "-f", filePath,
-        ],
-        { env: getEnv(), maxBuffer: 50 * 1024 * 1024 },
-      );
-
+      const fileName = await createBackupFile("backup");
       return NextResponse.json({ ok: true, file: fileName });
     }
 

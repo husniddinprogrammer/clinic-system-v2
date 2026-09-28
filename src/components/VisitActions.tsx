@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Modal } from "./Modal";
 import { PatientSearchInput, PatientResult } from "./PatientSearchInput";
-import { createVisit, updateVisit, deleteVisit } from "@/app/actions/visits";
+import { createVisit, updateVisit, toggleVisitActive } from "@/app/actions/visits";
 import { createPatientInline } from "@/app/actions/patients";
 import { toInputDate, formatPhoneValue } from "@/lib/utils";
 
@@ -21,6 +21,7 @@ type VisitData = {
   payment_amount: string;
   payment_type: string;
   additional_info: string;
+  is_active: boolean;
 };
 
 function formatPayment(value: string): string {
@@ -394,14 +395,15 @@ export function VisitActions({
 
   if (!visit) return null;
 
-  function handleDelete() {
+  function handleToggle() {
     setError("");
     const formData = new FormData();
     formData.set("id", String(visit!.id));
     formData.set("patient_id", String(visit!.patient_id));
+    formData.set("is_active", String(!visit!.is_active));
     startTransition(async () => {
       try {
-        await deleteVisit(formData);
+        await toggleVisitActive(formData);
         setShowDelete(false);
         router.refresh();
       } catch (err) {
@@ -424,9 +426,13 @@ export function VisitActions({
         {canDelete && (
           <button
             onClick={() => setShowDelete(true)}
-            className="text-red-600 hover:bg-red-50 px-2.5 py-1.5 rounded text-xs font-medium"
+            className={`px-2.5 py-1.5 rounded text-xs font-medium ${
+              visit.is_active
+                ? "text-amber-600 hover:bg-amber-50"
+                : "text-emerald-600 hover:bg-emerald-50"
+            }`}
           >
-            O'chirish
+            {visit.is_active ? "Deaktiv" : "Aktivlashtirish"}
           </button>
         )}
       </div>
@@ -451,7 +457,7 @@ export function VisitActions({
       <Modal
         open={showDelete}
         onClose={() => setShowDelete(false)}
-        title="Tashrifni o'chirish"
+        title={visit.is_active ? "Tashrifni deaktiv qilish" : "Tashrifni aktivlashtirish"}
       >
         <div className="space-y-4">
           {error && (
@@ -460,15 +466,25 @@ export function VisitActions({
             </div>
           )}
           <p className="text-sm text-slate-600">
-            Ushbu tashrifni o'chirmoqchimisiz?
+            {visit.is_active
+              ? "Ushbu tashrifni deaktiv qilmoqchimisiz? Ma'lumot o'chirilmaydi — statistika va hisobotlarga kirmaydi, lekin tarixda saqlanadi."
+              : "Ushbu tashrifni qayta aktiv qilmoqchimisiz?"}
           </p>
           <div className="flex gap-2">
             <button
-              onClick={handleDelete}
+              onClick={handleToggle}
               disabled={pending}
-              className="flex-1 bg-red-600 hover:bg-red-700 disabled:opacity-60 text-white text-sm font-medium py-2.5 rounded-lg"
+              className={`flex-1 disabled:opacity-60 text-white text-sm font-medium py-2.5 rounded-lg ${
+                visit.is_active
+                  ? "bg-amber-600 hover:bg-amber-700"
+                  : "bg-emerald-600 hover:bg-emerald-700"
+              }`}
             >
-              {pending ? "O'chirilmoqda..." : "O'chirish"}
+              {pending
+                ? "Bajarilmoqda..."
+                : visit.is_active
+                  ? "Deaktiv qilish"
+                  : "Aktivlashtirish"}
             </button>
             <button
               onClick={() => setShowDelete(false)}

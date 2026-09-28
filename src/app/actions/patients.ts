@@ -82,17 +82,22 @@ export async function updatePatient(formData: FormData) {
   revalidatePath(`/patients/${id}`);
 }
 
-export async function deletePatient(formData: FormData) {
+export async function togglePatientActive(formData: FormData) {
   const user = await requireUser();
   if (!hasPermission(user.role, "patients:delete")) {
     throw new Error("FORBIDDEN");
   }
 
   const id = Number(formData.get("id"));
+  const is_active = formData.get("is_active") === "true";
   if (!id) throw new Error("Noto'g'ri ma'lumot.");
 
-  await prisma.patient.delete({ where: { id } });
+  await prisma.patient.update({
+    where: { id },
+    data: { is_active },
+  });
 
   revalidatePath("/patients");
+  revalidatePath(`/patients/${id}`);
   revalidatePath("/dashboard");
 }

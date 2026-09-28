@@ -36,7 +36,7 @@ export function Sidebar({
   const items = NAV_ITEMS.filter((item) => item.roles.includes(role));
 
   return (
-    <aside className="w-60 bg-slate-800 text-slate-100 flex flex-col h-screen sticky top-0 shrink-0">
+    <aside className="w-60 bg-slate-800 text-slate-100 flex flex-col h-full shrink-0">
       <div className="px-5 py-5 border-b border-slate-700">
         <div className="flex items-center gap-2.5">
           {logoUrl ? (

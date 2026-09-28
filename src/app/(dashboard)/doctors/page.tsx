@@ -2,9 +2,14 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { Topbar } from "@/components/Topbar";
 import { AddDoctorButton, DoctorToggleButton } from "@/components/DoctorActions";
+import { Pagination, PAGE_SIZE } from "@/components/Pagination";
 import { formatDate, formatMoney } from "@/lib/utils";
 
-export default async function DoctorsPage() {
+export default async function DoctorsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
   const user = await getCurrentUser();
   if (!user || user.role !== "ADMIN") {
     return (
@@ -19,19 +24,32 @@ export default async function DoctorsPage() {
     );
   }
 
-  const doctors = await prisma.user.findMany({
-    where: { role: "DOCTOR" },
-    orderBy: { created_at: "desc" },
-    select: {
-      id: true,
-      username: true,
-      full_name: true,
-      is_active: true,
-      created_at: true,
-      _count: { select: { visits: true } },
-      visits: { select: { payment_amount: true } },
-    },
-  });
+  const { page: rawPage } = await searchParams;
+  const page = Math.max(1, Number(rawPage) || 1);
+
+  const [doctors, doctorsTotal] = await Promise.all([
+    prisma.user.findMany({
+      where: { role: "DOCTOR" },
+      orderBy: { created_at: "desc" },
+      select: {
+        id: true,
+        username: true,
+        full_name: true,
+        is_active: true,
+        created_at: true,
+        _count: { select: { visits: { where: { is_active: true } } } },
+        visits: {
+          where: { is_active: true },
+          select: { payment_amount: true },
+        },
+      },
+      skip: (page - 1) * PAGE_SIZE,
+      take: PAGE_SIZE,
+    }),
+    prisma.user.count({ where: { role: "DOCTOR" } }),
+  ]);
+
+  const totalPages = Math.max(1, Math.ceil(doctorsTotal / PAGE_SIZE));
 
   return (
     <>
@@ -79,7 +97,9 @@ export default async function DoctorsPage() {
                       key={d.id}
                       className="border-b border-slate-100 hover:bg-slate-50"
                     >
-                      <td className="px-4 py-3 text-slate-400">{i + 1}</td>
+                      <td className="px-4 py-3 text-slate-400">
+                        {(page - 1) * PAGE_SIZE + i + 1}
+                      </td>
                       <td className="px-4 py-3 font-medium text-slate-800">
                         {d.full_name}
                       </td>
@@ -113,6 +133,13 @@ export default async function DoctorsPage() {
               )}
             </tbody>
           </table>
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            total={doctorsTotal}
+            params={{}}
+            path="/doctors"
+          />
         </div>
       </main>
     </>

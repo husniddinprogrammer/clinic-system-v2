@@ -33,7 +33,7 @@ export function SettingsImport() {
       } else {
         setResult({
           ok: true,
-          message: `Import tugadi! Yangi bemorlar: ${data.importedPatients}, Tashriflar: ${data.importedVisits}, O'tkazib yuborilgan: ${data.skipped}, Jami qatorlar: ${data.totalRows}`,
+          message: `Import tugadi! Yangi bemorlar: ${data.importedPatients}, Tashriflar: ${data.importedVisits}, O'tkazib yuborilgan: ${data.skipped}, Jami qatorlar: ${data.totalRows}${data.sheetsProcessed > 1 ? `, Sheetlar: ${data.sheetsProcessed}` : ""}`,
         });
         if (fileRef.current) fileRef.current.value = "";
         setFile(null);
@@ -52,9 +52,10 @@ export function SettingsImport() {
         Excel fayldan ma'lumot import qilish
       </h2>
       <p className="text-sm text-slate-500 mb-4">
-        Excel ustunlari ketma-ketligi: №, Bemor ismi, Tug'ilgan yili,
-        Telefon, Tashxis, Kelgan sana, Bajarilgan ishlar, To'lov summasi,
-        Asoratlar, Qo'shimcha ma'lumotlar.
+        Ustunlar sarlavha nomlari bo'yicha avtomatik aniqlanadi: Bemor ismi,
+        Tug'ilgan yili, Telefon, Tashxis, Kelgan sanasi, Bajarilgan ishlar,
+        To'lov summasi, Qo'shimcha ma'lumotlar. Fayldagi barcha bemorlar
+        jadvali bo'lgan sheetlar o'qiladi.
       </p>
 
       <form onSubmit={handleImport} className="space-y-4">

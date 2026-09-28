@@ -6,12 +6,15 @@ import { hasPermission } from "@/lib/permissions";
 import { Topbar } from "@/components/Topbar";
 import { PatientActions } from "@/components/PatientActions";
 import { VisitActions } from "@/components/VisitActions";
+import { Pagination, PAGE_SIZE } from "@/components/Pagination";
 import { formatDate, formatMoney, formatPaymentType, toInputDate, calcAge } from "@/lib/utils";
 
 export default async function PatientProfilePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ page?: string }>;
 }) {
   const user = await getCurrentUser();
   if (!user) notFound();
@@ -20,17 +23,31 @@ export default async function PatientProfilePage({
   const patientId = Number(id);
   if (!patientId) notFound();
 
+  const { page: rawPage } = await searchParams;
+  const page = Math.max(1, Number(rawPage) || 1);
+
   const patient = await prisma.patient.findUnique({
     where: { id: patientId },
-    include: {
-      visits: {
-        orderBy: { visit_date: "desc" },
-        include: { doctor: { select: { id: true, full_name: true } } },
-      },
-    },
   });
 
   if (!patient) notFound();
+
+  const [visits, visitsTotal, paymentAgg] = await Promise.all([
+    prisma.visit.findMany({
+      where: { patient_id: patientId },
+      orderBy: { visit_date: "desc" },
+      include: { doctor: { select: { id: true, full_name: true } } },
+      skip: (page - 1) * PAGE_SIZE,
+      take: PAGE_SIZE,
+    }),
+    prisma.visit.count({ where: { patient_id: patientId } }),
+    prisma.visit.aggregate({
+      where: { patient_id: patientId, is_active: true },
+      _sum: { payment_amount: true },
+    }),
+  ]);
+
+  const totalPages = Math.max(1, Math.ceil(visitsTotal / PAGE_SIZE));
 
   const canEditPatient = hasPermission(user.role, "patients:edit");
   const canDeletePatient = hasPermission(user.role, "patients:delete");
@@ -47,10 +64,7 @@ export default async function PatientProfilePage({
       })
     : [];
 
-  const totalPayment = patient.visits.reduce(
-    (sum, v) => sum + Number(v.payment_amount ?? 0),
-    0,
-  );
+  const totalPayment = Number(paymentAgg._sum.payment_amount ?? 0);
 
   return (
     <>
@@ -68,8 +82,17 @@ export default async function PatientProfilePage({
         <div className="bg-white rounded-xl border border-slate-200 p-6 mb-6">
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div>
-              <h2 className="text-xl font-bold text-slate-800">
+              <h2 className="text-xl font-bold text-slate-800 flex items-center gap-3">
                 {patient.full_name}
+                <span
+                  className={`px-2 py-0.5 rounded text-xs font-medium ${
+                    patient.is_active
+                      ? "bg-green-100 text-green-700"
+                      : "bg-red-100 text-red-700"
+                  }`}
+                >
+                  {patient.is_active ? "Aktiv" : "Deaktiv"}
+                </span>
               </h2>
               <div className="mt-2 space-y-1 text-sm text-slate-600">
                 <div>
@@ -103,6 +126,7 @@ export default async function PatientProfilePage({
                   ? toInputDate(patient.birth_date)
                   : "",
                 phone: patient.phone ?? "",
+                is_active: patient.is_active,
               }}
               canEdit={canEditPatient}
               canDelete={canDeletePatient}
@@ -112,7 +136,7 @@ export default async function PatientProfilePage({
 
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-base font-semibold text-slate-800">
-            Tashriflar ({patient.visits.length})
+            Tashriflar ({visitsTotal})
           </h3>
           {canCreateVisit && (
             <VisitActions
@@ -136,24 +160,27 @@ export default async function PatientProfilePage({
                 <th className="px-4 py-3 font-medium">To'lov turi</th>
                 <th className="px-4 py-3 font-medium text-right">To'lov</th>
                 <th className="px-4 py-3 font-medium">Qo'shimcha</th>
+                <th className="px-4 py-3 font-medium">Status</th>
                 <th className="px-4 py-3 font-medium text-right">Amallar</th>
               </tr>
             </thead>
             <tbody>
-              {patient.visits.length === 0 ? (
+              {visits.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={8}
+                    colSpan={9}
                     className="px-4 py-12 text-center text-slate-400"
                   >
                     Tashriflar yo'q.
                   </td>
                 </tr>
               ) : (
-                patient.visits.map((v) => (
+                visits.map((v) => (
                   <tr
                     key={v.id}
-                    className="border-b border-slate-100 hover:bg-slate-50 align-top"
+                    className={`border-b border-slate-100 hover:bg-slate-50 align-top ${
+                      v.is_active ? "" : "opacity-60"
+                    }`}
                   >
                     <td className="px-4 py-3 whitespace-nowrap text-slate-700">
                       {formatDate(v.visit_date)}
@@ -176,6 +203,17 @@ export default async function PatientProfilePage({
                     <td className="px-4 py-3 text-slate-600 max-w-xs">
                       {v.additional_info ?? "-"}
                     </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`px-2 py-0.5 rounded text-xs font-medium ${
+                          v.is_active
+                            ? "bg-green-100 text-green-700"
+                            : "bg-red-100 text-red-700"
+                        }`}
+                      >
+                        {v.is_active ? "Aktiv" : "Deaktiv"}
+                      </span>
+                    </td>
                     <td className="px-4 py-3 text-right">
                       <VisitActions
                         mode="row"
@@ -192,6 +230,7 @@ export default async function PatientProfilePage({
                               : "",
                           payment_type: v.payment_type ?? "",
                           additional_info: v.additional_info ?? "",
+                          is_active: v.is_active,
                         }}
                         doctors={doctors}
                         fixedPatientId={v.patient_id}
@@ -206,6 +245,13 @@ export default async function PatientProfilePage({
               )}
             </tbody>
           </table>
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            total={visitsTotal}
+            params={{}}
+            path={`/patients/${patientId}`}
+          />
         </div>
       </main>
     </>

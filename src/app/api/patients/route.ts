@@ -11,14 +11,17 @@ export async function GET(request: NextRequest) {
   const q = request.nextUrl.searchParams.get("q")?.trim() ?? "";
 
   const patients = await prisma.patient.findMany({
-    where: q
-      ? {
-          OR: [
-            { full_name: { contains: q, mode: "insensitive" } },
-            { phone: { contains: q } },
-          ],
-        }
-      : {},
+    where: {
+      is_active: true,
+      ...(q
+        ? {
+            OR: [
+              { full_name: { contains: q, mode: "insensitive" } },
+              { phone: { contains: q } },
+            ],
+          }
+        : {}),
+    },
     select: { id: true, full_name: true, phone: true },
     orderBy: { full_name: "asc" },
     take: 20,

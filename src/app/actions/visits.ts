@@ -50,6 +50,14 @@ export async function createVisit(formData: FormData) {
     throw new Error("Tashxis va bajarilgan ishlar to'ldirilishi shart.");
   }
 
+  const patient = await prisma.patient.findUnique({
+    where: { id: patient_id },
+    select: { is_active: true },
+  });
+  if (!patient?.is_active) {
+    throw new Error("Bu bemor deaktiv holatda — unga tashrif qo'shib bo'lmaydi.");
+  }
+
   await prisma.visit.create({
     data: {
       patient_id,
@@ -110,7 +118,7 @@ export async function updateVisit(formData: FormData) {
   revalidatePath("/dashboard");
 }
 
-export async function deleteVisit(formData: FormData) {
+export async function toggleVisitActive(formData: FormData) {
   const user = await requireUser();
   if (!hasPermission(user.role, "visits:delete")) {
     throw new Error("FORBIDDEN");
@@ -118,9 +126,13 @@ export async function deleteVisit(formData: FormData) {
 
   const id = Number(formData.get("id"));
   const patient_id = Number(formData.get("patient_id"));
+  const is_active = formData.get("is_active") === "true";
   if (!id) throw new Error("Noto'g'ri ma'lumot.");
 
-  await prisma.visit.delete({ where: { id } });
+  await prisma.visit.update({
+    where: { id },
+    data: { is_active },
+  });
 
   revalidatePath("/visits");
   if (patient_id) revalidatePath(`/patients/${patient_id}`);

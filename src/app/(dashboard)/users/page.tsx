@@ -3,9 +3,14 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { Topbar } from "@/components/Topbar";
 import { UserActions } from "@/components/UserActions";
+import { Pagination, PAGE_SIZE } from "@/components/Pagination";
 import { formatDate } from "@/lib/utils";
 
-export default async function UsersPage() {
+export default async function UsersPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   if (user.role !== "ADMIN") {
@@ -21,17 +26,27 @@ export default async function UsersPage() {
     );
   }
 
-  const users = await prisma.user.findMany({
-    orderBy: { created_at: "desc" },
-    select: {
-      id: true,
-      username: true,
-      full_name: true,
-      role: true,
-      is_active: true,
-      created_at: true,
-    },
-  });
+  const { page: rawPage } = await searchParams;
+  const page = Math.max(1, Number(rawPage) || 1);
+
+  const [users, usersTotal] = await Promise.all([
+    prisma.user.findMany({
+      orderBy: { created_at: "desc" },
+      select: {
+        id: true,
+        username: true,
+        full_name: true,
+        role: true,
+        is_active: true,
+        created_at: true,
+      },
+      skip: (page - 1) * PAGE_SIZE,
+      take: PAGE_SIZE,
+    }),
+    prisma.user.count(),
+  ]);
+
+  const totalPages = Math.max(1, Math.ceil(usersTotal / PAGE_SIZE));
 
   return (
     <>
@@ -63,7 +78,9 @@ export default async function UsersPage() {
                   key={u.id}
                   className="border-b border-slate-100 hover:bg-slate-50"
                 >
-                  <td className="px-4 py-3 text-slate-400">{i + 1}</td>
+                  <td className="px-4 py-3 text-slate-400">
+                    {(page - 1) * PAGE_SIZE + i + 1}
+                  </td>
                   <td className="px-4 py-3 font-medium text-slate-800">
                     {u.username}
                   </td>
@@ -111,6 +128,13 @@ export default async function UsersPage() {
               ))}
             </tbody>
           </table>
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            total={usersTotal}
+            params={{}}
+            path="/users"
+          />
         </div>
       </main>
     </>

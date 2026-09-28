@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Modal } from "./Modal";
-import { createPatient, updatePatient, deletePatient } from "@/app/actions/patients";
+import { createPatient, updatePatient, togglePatientActive } from "@/app/actions/patients";
 import { PHONE_PATTERN, formatPhoneValue } from "@/lib/utils";
 
 type PatientData = {
@@ -11,6 +11,7 @@ type PatientData = {
   full_name: string;
   birth_date: string;
   phone: string;
+  is_active: boolean;
 };
 
 function PatientForm({
@@ -152,13 +153,14 @@ export function PatientActions({
 
   if (!patient) return null;
 
-  function handleDelete() {
+  function handleToggle() {
     setError("");
     const formData = new FormData();
     formData.set("id", String(patient!.id));
+    formData.set("is_active", String(!patient!.is_active));
     startTransition(async () => {
       try {
-        await deletePatient(formData);
+        await togglePatientActive(formData);
         setShowDelete(false);
         router.refresh();
       } catch (err) {
@@ -181,9 +183,13 @@ export function PatientActions({
         {canDelete && (
           <button
             onClick={() => setShowDelete(true)}
-            className="text-red-600 hover:bg-red-50 px-2.5 py-1.5 rounded text-xs font-medium"
+            className={`px-2.5 py-1.5 rounded text-xs font-medium ${
+              patient.is_active
+                ? "text-amber-600 hover:bg-amber-50"
+                : "text-emerald-600 hover:bg-emerald-50"
+            }`}
           >
-            O'chirish
+            {patient.is_active ? "Deaktiv" : "Aktivlashtirish"}
           </button>
         )}
       </div>
@@ -203,7 +209,7 @@ export function PatientActions({
       <Modal
         open={showDelete}
         onClose={() => setShowDelete(false)}
-        title="Bemorni o'chirish"
+        title={patient.is_active ? "Bemorni deaktiv qilish" : "Bemorni aktivlashtirish"}
       >
         <div className="space-y-4">
           {error && (
@@ -212,16 +218,34 @@ export function PatientActions({
             </div>
           )}
           <p className="text-sm text-slate-600">
-            <strong>{patient.full_name}</strong> bemorini o'chirmoqchimisiz?
-            Bemorning barcha tashriflari ham o'chiriladi.
+            {patient.is_active ? (
+              <>
+                <strong>{patient.full_name}</strong> bemorni deaktiv
+                qilmoqchimisiz? Ma'lumotlar o'chirilmaydi — bemor yangi
+                tashriflarda ko'rinmaydi, lekin tarix saqlanadi.
+              </>
+            ) : (
+              <>
+                <strong>{patient.full_name}</strong> bemorni qayta aktiv
+                qilmoqchimisiz?
+              </>
+            )}
           </p>
           <div className="flex gap-2">
             <button
-              onClick={handleDelete}
+              onClick={handleToggle}
               disabled={pending}
-              className="flex-1 bg-red-600 hover:bg-red-700 disabled:opacity-60 text-white text-sm font-medium py-2.5 rounded-lg"
+              className={`flex-1 disabled:opacity-60 text-white text-sm font-medium py-2.5 rounded-lg ${
+                patient.is_active
+                  ? "bg-amber-600 hover:bg-amber-700"
+                  : "bg-emerald-600 hover:bg-emerald-700"
+              }`}
             >
-              {pending ? "O'chirilmoqda..." : "O'chirish"}
+              {pending
+                ? "Bajarilmoqda..."
+                : patient.is_active
+                  ? "Deaktiv qilish"
+                  : "Aktivlashtirish"}
             </button>
             <button
               onClick={() => setShowDelete(false)}

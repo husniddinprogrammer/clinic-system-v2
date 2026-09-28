@@ -1,17 +1,19 @@
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { Topbar } from "@/components/Topbar";
+import { Pagination, PAGE_SIZE } from "@/components/Pagination";
 import { formatDate, formatMoney, toInputDate } from "@/lib/utils";
 
 export default async function ReportsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ from?: string; to?: string }>;
+  searchParams: Promise<{ from?: string; to?: string; page?: string }>;
 }) {
   const user = await getCurrentUser();
   if (!user) return null;
 
-  const { from, to } = await searchParams;
+  const { from, to, page: rawPage } = await searchParams;
+  const page = Math.max(1, Number(rawPage) || 1);
 
   // Default to current month
   const now = new Date();
@@ -22,34 +24,52 @@ export default async function ReportsPage({
   const toDate = to ? new Date(to) : defaultTo;
   toDate.setHours(23, 59, 59, 999);
 
-  const [visits, newPatients] = await Promise.all([
-    prisma.visit.findMany({
-      where: { visit_date: { gte: fromDate, lte: toDate } },
-      orderBy: { visit_date: "desc" },
-      include: {
-        patient: { select: { full_name: true } },
-        doctor: { select: { full_name: true } },
-      },
-    }),
-    prisma.patient.count({
-      where: { created_at: { gte: fromDate, lte: toDate } },
-    }),
-  ]);
+  const where = {
+    visit_date: { gte: fromDate, lte: toDate },
+    is_active: true,
+  };
 
-  const totalSum = visits.reduce(
-    (sum, v) => sum + Number(v.payment_amount ?? 0),
-    0,
-  );
+  const [visits, visitsTotal, sumAgg, newPatients, byDoctorRows] =
+    await Promise.all([
+      prisma.visit.findMany({
+        where,
+        orderBy: { visit_date: "desc" },
+        include: {
+          patient: { select: { full_name: true } },
+          doctor: { select: { full_name: true } },
+        },
+        skip: (page - 1) * PAGE_SIZE,
+        take: PAGE_SIZE,
+      }),
+      prisma.visit.count({ where }),
+      prisma.visit.aggregate({ where, _sum: { payment_amount: true } }),
+      prisma.patient.count({
+        where: { created_at: { gte: fromDate, lte: toDate } },
+      }),
+      prisma.visit.groupBy({
+        by: ["doctor_id"],
+        where,
+        _count: { _all: true },
+        _sum: { payment_amount: true },
+      }),
+    ]);
 
-  // Group by doctor
-  const byDoctor = new Map<string, { count: number; sum: number }>();
-  for (const v of visits) {
-    const key = v.doctor.full_name;
-    const entry = byDoctor.get(key) ?? { count: 0, sum: 0 };
-    entry.count += 1;
-    entry.sum += Number(v.payment_amount ?? 0);
-    byDoctor.set(key, entry);
-  }
+  const doctorIds = byDoctorRows.map((r) => r.doctor_id);
+  const doctorNames = doctorIds.length
+    ? await prisma.user.findMany({
+        where: { id: { in: doctorIds } },
+        select: { id: true, full_name: true },
+      })
+    : [];
+  const nameMap = new Map(doctorNames.map((d) => [d.id, d.full_name]));
+  const byDoctor = byDoctorRows.map((r) => ({
+    name: nameMap.get(r.doctor_id) ?? `#${r.doctor_id}`,
+    count: r._count._all,
+    sum: Number(r._sum.payment_amount ?? 0),
+  }));
+
+  const totalPages = Math.max(1, Math.ceil(visitsTotal / PAGE_SIZE));
+  const totalSum = Number(sumAgg._sum.payment_amount ?? 0);
 
   return (
     <>
@@ -84,7 +104,7 @@ export default async function ReportsPage({
               Tashriflar
             </div>
             <div className="text-2xl font-bold text-slate-800 mt-2">
-              {visits.length}
+              {visitsTotal}
             </div>
           </div>
           <div className="bg-white rounded-xl border border-slate-200 p-5">
@@ -105,7 +125,7 @@ export default async function ReportsPage({
           </div>
         </div>
 
-        {byDoctor.size > 0 && (
+        {byDoctor.length > 0 && (
           <div className="bg-white rounded-xl border border-slate-200 p-5 mb-6">
             <h3 className="text-sm font-semibold text-slate-700 mb-3">
               Doctorlar bo'yicha
@@ -119,9 +139,9 @@ export default async function ReportsPage({
                 </tr>
               </thead>
               <tbody>
-                {[...byDoctor.entries()].map(([name, e]) => (
-                  <tr key={name} className="border-b border-slate-100">
-                    <td className="py-2.5 text-slate-700">{name}</td>
+                {byDoctor.map((e) => (
+                  <tr key={e.name} className="border-b border-slate-100">
+                    <td className="py-2.5 text-slate-700">{e.name}</td>
                     <td className="py-2.5 text-right text-slate-600">
                       {e.count}
                     </td>
@@ -182,6 +202,13 @@ export default async function ReportsPage({
               )}
             </tbody>
           </table>
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            total={visitsTotal}
+            params={{ from, to }}
+            path="/reports"
+          />
         </div>
       </main>
     </>

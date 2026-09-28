@@ -5,12 +5,13 @@ import { Topbar } from "@/components/Topbar";
 import { PatientActions } from "@/components/PatientActions";
 import { formatDate, formatMoney } from "@/lib/utils";
 import { hasPermission } from "@/lib/permissions";
+import { Pagination, PAGE_SIZE } from "@/components/Pagination";
 import type { Prisma } from "@prisma/client";
 
 export default async function PatientsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string; page?: string }>;
 }) {
   const user = await getCurrentUser();
   if (!user) return null;
@@ -19,8 +20,9 @@ export default async function PatientsPage({
   const canEdit = hasPermission(user.role, "patients:edit");
   const canDelete = hasPermission(user.role, "patients:delete");
 
-  const { q } = await searchParams;
+  const { q, page: rawPage } = await searchParams;
   const query = (q ?? "").trim();
+  const page = Math.max(1, Number(rawPage) || 1);
 
   const where: Prisma.PatientWhereInput = {};
   if (query) {
@@ -30,17 +32,24 @@ export default async function PatientsPage({
     ];
   }
 
-  const patients = await prisma.patient.findMany({
-    where,
-    orderBy: { created_at: "desc" },
-    include: {
-      visits: {
-        select: { visit_date: true, payment_amount: true },
-        orderBy: { visit_date: "desc" },
+  const [patients, patientsTotal] = await Promise.all([
+    prisma.patient.findMany({
+      where,
+      orderBy: { created_at: "desc" },
+      include: {
+        visits: {
+          where: { is_active: true },
+          select: { visit_date: true, payment_amount: true },
+          orderBy: { visit_date: "desc" },
+        },
       },
-    },
-    take: 500,
-  });
+      skip: (page - 1) * PAGE_SIZE,
+      take: PAGE_SIZE,
+    }),
+    prisma.patient.count({ where }),
+  ]);
+
+  const totalPages = Math.max(1, Math.ceil(patientsTotal / PAGE_SIZE));
 
   const rows = patients.map((p) => ({
     id: p.id,
@@ -52,6 +61,7 @@ export default async function PatientsPage({
       (sum, v) => sum + Number(v.payment_amount ?? 0),
       0,
     ),
+    is_active: p.is_active,
   }));
 
   return (
@@ -82,6 +92,7 @@ export default async function PatientsPage({
                 <th className="px-4 py-3 font-medium">Telefon</th>
                 <th className="px-4 py-3 font-medium">Oxirgi tashrif</th>
                 <th className="px-4 py-3 font-medium text-right">Jami to'lov</th>
+                <th className="px-4 py-3 font-medium">Status</th>
                 <th className="px-4 py-3 font-medium text-right">Amallar</th>
               </tr>
             </thead>
@@ -89,7 +100,7 @@ export default async function PatientsPage({
               {rows.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={7}
+                    colSpan={8}
                     className="px-4 py-12 text-center text-slate-400"
                   >
                     {query
@@ -101,9 +112,13 @@ export default async function PatientsPage({
                 rows.map((p, i) => (
                   <tr
                     key={p.id}
-                    className="border-b border-slate-100 hover:bg-slate-50"
+                    className={`border-b border-slate-100 hover:bg-slate-50 ${
+                      p.is_active ? "" : "opacity-60"
+                    }`}
                   >
-                    <td className="px-4 py-3 text-slate-400">{i + 1}</td>
+                    <td className="px-4 py-3 text-slate-400">
+                      {(page - 1) * PAGE_SIZE + i + 1}
+                    </td>
                     <td className="px-4 py-3">
                       <Link
                         href={`/patients/${p.id}`}
@@ -122,6 +137,17 @@ export default async function PatientsPage({
                     <td className="px-4 py-3 text-right font-medium text-slate-800">
                       {formatMoney(p.total_payment)}
                     </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`px-2 py-0.5 rounded text-xs font-medium ${
+                          p.is_active
+                            ? "bg-green-100 text-green-700"
+                            : "bg-red-100 text-red-700"
+                        }`}
+                      >
+                        {p.is_active ? "Aktiv" : "Deaktiv"}
+                      </span>
+                    </td>
                     <td className="px-4 py-3 text-right">
                       <PatientActions
                         mode="row"
@@ -132,6 +158,7 @@ export default async function PatientsPage({
                             ? p.birth_date.toISOString().split("T")[0]
                             : "",
                           phone: p.phone ?? "",
+                          is_active: p.is_active,
                         }}
                         canEdit={canEdit}
                         canDelete={canDelete}
@@ -142,6 +169,13 @@ export default async function PatientsPage({
               )}
             </tbody>
           </table>
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            total={patientsTotal}
+            params={{ q: query }}
+            path="/patients"
+          />
         </div>
       </main>
     </>

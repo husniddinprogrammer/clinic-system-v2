@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
 import { Topbar } from "@/components/Topbar";
 import { VisitActions } from "@/components/VisitActions";
+import { Pagination, PAGE_SIZE } from "@/components/Pagination";
 import {
   formatDate,
   formatMoney,
@@ -36,6 +37,7 @@ export default async function VisitsPage({
   searchParams: Promise<{
     from?: string;
     to?: string;
+    page?: string;
   }>;
 }) {
   const user = await getCurrentUser();
@@ -46,7 +48,8 @@ export default async function VisitsPage({
   const canDelete = hasPermission(user.role, "visits:delete");
   const isAdmin = user.role === "ADMIN";
 
-  const { from, to } = await searchParams;
+  const { from, to, page: rawPage } = await searchParams;
+  const page = Math.max(1, Number(rawPage) || 1);
 
   const where: { visit_date?: { gte?: Date; lte?: Date } } = {};
   if (from) where.visit_date = { ...where.visit_date, gte: new Date(from) };
@@ -63,35 +66,41 @@ export default async function VisitsPage({
   todayEnd.setHours(23, 59, 59, 999);
   const todayWhere = { visit_date: { gte: todayStart, lte: todayEnd } };
 
-  const [visits, doctors, todayVisits, todayRevenue] = await Promise.all([
-    prisma.visit.findMany({
-      where,
-      orderBy: { visit_date: "desc" },
-      include: {
-        patient: { select: { id: true, full_name: true } },
-        doctor: { select: { id: true, full_name: true } },
-      },
-      take: 500,
-    }),
-    isAdmin
-      ? prisma.user.findMany({
-          where: { role: "DOCTOR", is_active: true },
-          select: { id: true, full_name: true },
-          orderBy: { full_name: "asc" },
-        })
-      : [],
-    prisma.visit.count({ where: todayWhere }),
-    prisma.visit.aggregate({
-      where: todayWhere,
-      _sum: { payment_amount: true },
-    }),
-  ]);
+  const activeWhere = { ...where, is_active: true };
+  const activeTodayWhere = { ...todayWhere, is_active: true };
 
+  const [visits, visitsTotal, activeCount, filteredRevenue, doctors, todayVisits, todayRevenue] =
+    await Promise.all([
+      prisma.visit.findMany({
+        where,
+        orderBy: { visit_date: "desc" },
+        include: {
+          patient: { select: { id: true, full_name: true } },
+          doctor: { select: { id: true, full_name: true } },
+        },
+        skip: (page - 1) * PAGE_SIZE,
+        take: PAGE_SIZE,
+      }),
+      prisma.visit.count({ where }),
+      prisma.visit.count({ where: activeWhere }),
+      prisma.visit.aggregate({ where: activeWhere, _sum: { payment_amount: true } }),
+      isAdmin
+        ? prisma.user.findMany({
+            where: { role: "DOCTOR", is_active: true },
+            select: { id: true, full_name: true },
+            orderBy: { full_name: "asc" },
+          })
+        : [],
+      prisma.visit.count({ where: activeTodayWhere }),
+      prisma.visit.aggregate({
+        where: activeTodayWhere,
+        _sum: { payment_amount: true },
+      }),
+    ]);
+
+  const totalPages = Math.max(1, Math.ceil(visitsTotal / PAGE_SIZE));
   const todaySum = Number(todayRevenue?._sum?.payment_amount ?? 0);
-  const filteredSum = visits.reduce(
-    (sum, v) => sum + Number(v.payment_amount ?? 0),
-    0,
-  );
+  const filteredSum = Number(filteredRevenue._sum.payment_amount ?? 0);
 
   return (
     <>
@@ -151,7 +160,7 @@ export default async function VisitsPage({
         </div>
 
         <div className="mb-3 text-sm text-slate-600">
-          Jami tashriflar: <strong>{visits.length}</strong> · Umumiy to'lov:{" "}
+          Jami tashriflar: <strong>{activeCount}</strong> · Umumiy to'lov:{" "}
           <strong>{formatMoney(filteredSum)}</strong>
         </div>
 
@@ -166,6 +175,7 @@ export default async function VisitsPage({
                 <th className="px-4 py-3 font-medium">Tashxis</th>
                 <th className="px-4 py-3 font-medium">To'lov turi</th>
                 <th className="px-4 py-3 font-medium text-right">To'lov</th>
+                <th className="px-4 py-3 font-medium">Status</th>
                 <th className="px-4 py-3 font-medium text-right">Amallar</th>
               </tr>
             </thead>
@@ -173,7 +183,7 @@ export default async function VisitsPage({
               {visits.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={8}
+                    colSpan={9}
                     className="px-4 py-12 text-center text-slate-400"
                   >
                     Tashriflar topilmadi.
@@ -183,7 +193,9 @@ export default async function VisitsPage({
                 visits.map((v) => (
                   <tr
                     key={v.id}
-                    className="border-b border-slate-100 hover:bg-slate-50 align-top"
+                    className={`border-b border-slate-100 hover:bg-slate-50 align-top ${
+                      v.is_active ? "" : "opacity-60"
+                    }`}
                   >
                     <td className="px-4 py-3 whitespace-nowrap text-slate-700">
                       {formatDate(v.visit_date)}
@@ -211,6 +223,17 @@ export default async function VisitsPage({
                     <td className="px-4 py-3 text-right font-medium text-slate-800 whitespace-nowrap">
                       {formatMoney(Number(v.payment_amount ?? 0))}
                     </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`px-2 py-0.5 rounded text-xs font-medium ${
+                          v.is_active
+                            ? "bg-green-100 text-green-700"
+                            : "bg-red-100 text-red-700"
+                        }`}
+                      >
+                        {v.is_active ? "Aktiv" : "Deaktiv"}
+                      </span>
+                    </td>
                     <td className="px-4 py-3 text-right">
                       <VisitActions
                         mode="row"
@@ -228,6 +251,7 @@ export default async function VisitsPage({
                               : "",
                           payment_type: v.payment_type ?? "",
                           additional_info: v.additional_info ?? "",
+                          is_active: v.is_active,
                         }}
                         doctors={doctors}
                         currentDoctorId={user.id}
@@ -241,6 +265,13 @@ export default async function VisitsPage({
               )}
             </tbody>
           </table>
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            total={visitsTotal}
+            params={{ from, to }}
+            path="/visits"
+          />
         </div>
       </main>
     </>
