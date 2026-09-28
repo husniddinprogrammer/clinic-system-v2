@@ -57,7 +57,7 @@ npm run start
 - **Username:** `admin`
 - **Parol:** `admin123`
 
-Faqat ADMIN yangi DOCTOR va NURSE userlar yaratishi mumkin.
+Faqat ADMIN yangi DOCTOR userlar yaratishi mumkin.
 
 ## Rollar
 
@@ -65,7 +65,6 @@ Faqat ADMIN yangi DOCTOR va NURSE userlar yaratishi mumkin.
 |------|-------------|
 | ADMIN | Barcha funksiyalar, user management, backup |
 | DOCTOR | Bemorlar, tashriflar, hisobotlar |
-| NURSE | Bemorlar, tashriflar, hisobotlar |
 
 ## Modullar
 
@@ -74,10 +73,8 @@ Faqat ADMIN yangi DOCTOR va NURSE userlar yaratishi mumkin.
 - **Bemor profili** — tashriflar tarixi
 - **Tashriflar** — CRUD, sana oralig'i bo'yicha filtr
 - **Hisobotlar** — sana oralig'i, doctorlar bo'yicha
-- **Excel Import** — Excel fayldan bemor/tashrif import
-- **User Management** (ADMIN) — doctor/hamshira yaratish
-- **Backup** (ADMIN) — PostgreSQL backup/restore
-- **Sozlamalar** (ADMIN) — parolni o'zgartirish
+- **User Management** (ADMIN) — doctor yaratish
+- **Sozlamalar** — parolni o'zgartirish; ADMIN uchun: klinika nomi/logotip, Excel import, backup/restore
 
 ## Tuzilma
 
@@ -90,8 +87,6 @@ src/
       visits/
       reports/
       users/
-      backup/
-      import/
       settings/
     api/             # route handlers
     actions/         # server actions

@@ -54,6 +54,17 @@ export function formatPhoneValue(value: string): string {
   return parts.join(" ");
 }
 
+export const PAYMENT_TYPE_LABELS: Record<string, string> = {
+  CASH: "Naqd",
+  CARD: "Plastik",
+  CLICK: "Click",
+};
+
+export function formatPaymentType(type: string | null | undefined): string {
+  if (!type) return "-";
+  return PAYMENT_TYPE_LABELS[type] ?? type;
+}
+
 export function calcAge(birthDate: Date | null): string {
   if (!birthDate) return "-";
   const now = new Date();

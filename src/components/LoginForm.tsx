@@ -3,7 +3,13 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-export function LoginForm() {
+export function LoginForm({
+  clinicName = "Klinika",
+  logoUrl,
+}: {
+  clinicName?: string;
+  logoUrl?: string | null;
+}) {
   const router = useRouter();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -41,10 +47,19 @@ export function LoginForm() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 px-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-blue-600 text-white text-3xl mb-4 font-bold">
-            +
-          </div>
-          <h1 className="text-2xl font-bold text-slate-800">Klinika Boshqaruvi</h1>
+          {logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={logoUrl}
+              alt={clinicName}
+              className="inline-flex w-16 h-16 rounded-2xl object-cover mb-4"
+            />
+          ) : (
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-blue-600 text-white text-3xl mb-4 font-bold">
+              +
+            </div>
+          )}
+          <h1 className="text-2xl font-bold text-slate-800">{clinicName}</h1>
           <p className="text-slate-500 mt-1">Tizimga kirish</p>
         </div>
 

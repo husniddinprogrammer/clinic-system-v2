@@ -4,8 +4,12 @@ import { getCurrentUser } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
 import { Topbar } from "@/components/Topbar";
 import { VisitActions } from "@/components/VisitActions";
-import { PeriodFilter } from "@/components/PeriodFilter";
-import { formatDate, formatMoney, toInputDate } from "@/lib/utils";
+import {
+  formatDate,
+  formatMoney,
+  formatPaymentType,
+  toInputDate,
+} from "@/lib/utils";
 
 function StatCard({
   label,
@@ -32,9 +36,6 @@ export default async function VisitsPage({
   searchParams: Promise<{
     from?: string;
     to?: string;
-    period?: string;
-    sfrom?: string;
-    sto?: string;
   }>;
 }) {
   const user = await getCurrentUser();
@@ -45,8 +46,7 @@ export default async function VisitsPage({
   const canDelete = hasPermission(user.role, "visits:delete");
   const isAdmin = user.role === "ADMIN";
 
-  const { from, to, period: rawPeriod, sfrom, sto } = await searchParams;
-  const period = rawPeriod ?? "day";
+  const { from, to } = await searchParams;
 
   const where: { visit_date?: { gte?: Date; lte?: Date } } = {};
   if (from) where.visit_date = { ...where.visit_date, gte: new Date(from) };
@@ -56,72 +56,38 @@ export default async function VisitsPage({
     where.visit_date = { ...where.visit_date, lte: toDate };
   }
 
-  // Statistika davri
-  const now = new Date();
-  let rangeStart: Date | null = null;
-  let rangeEnd: Date | null = null;
+  // Bugungi statistika
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  const todayEnd = new Date();
+  todayEnd.setHours(23, 59, 59, 999);
+  const todayWhere = { visit_date: { gte: todayStart, lte: todayEnd } };
 
-  if (period === "week") {
-    rangeStart = new Date(now);
-    const dow = (rangeStart.getDay() + 6) % 7; // Dushanba = 0
-    rangeStart.setDate(rangeStart.getDate() - dow);
-    rangeStart.setHours(0, 0, 0, 0);
-    rangeEnd = new Date(now);
-    rangeEnd.setHours(23, 59, 59, 999);
-  } else if (period === "month") {
-    rangeStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    rangeEnd = new Date(now);
-    rangeEnd.setHours(23, 59, 59, 999);
-  } else if (period === "custom") {
-    if (sfrom && sto) {
-      rangeStart = new Date(sfrom);
-      rangeStart.setHours(0, 0, 0, 0);
-      rangeEnd = new Date(sto);
-      rangeEnd.setHours(23, 59, 59, 999);
-    }
-  } else {
-    // "day" — bugun
-    rangeStart = new Date(now);
-    rangeStart.setHours(0, 0, 0, 0);
-    rangeEnd = new Date(now);
-    rangeEnd.setHours(23, 59, 59, 999);
-  }
+  const [visits, doctors, todayVisits, todayRevenue] = await Promise.all([
+    prisma.visit.findMany({
+      where,
+      orderBy: { visit_date: "desc" },
+      include: {
+        patient: { select: { id: true, full_name: true } },
+        doctor: { select: { id: true, full_name: true } },
+      },
+      take: 500,
+    }),
+    isAdmin
+      ? prisma.user.findMany({
+          where: { role: "DOCTOR", is_active: true },
+          select: { id: true, full_name: true },
+          orderBy: { full_name: "asc" },
+        })
+      : [],
+    prisma.visit.count({ where: todayWhere }),
+    prisma.visit.aggregate({
+      where: todayWhere,
+      _sum: { payment_amount: true },
+    }),
+  ]);
 
-  const rangeWhere =
-    rangeStart && rangeEnd
-      ? { visit_date: { gte: rangeStart, lte: rangeEnd } }
-      : null;
-
-  const [visits, doctors, periodVisits, periodRevenue] =
-    await Promise.all([
-      prisma.visit.findMany({
-        where,
-        orderBy: { visit_date: "desc" },
-        include: {
-          patient: { select: { id: true, full_name: true } },
-          doctor: { select: { id: true, full_name: true } },
-        },
-        take: 500,
-      }),
-      isAdmin
-        ? prisma.user.findMany({
-            where: { role: "DOCTOR", is_active: true },
-            select: { id: true, full_name: true },
-            orderBy: { full_name: "asc" },
-          })
-        : [],
-      rangeWhere
-        ? prisma.visit.count({ where: rangeWhere })
-        : Promise.resolve(0),
-      rangeWhere
-        ? prisma.visit.aggregate({
-            where: rangeWhere,
-            _sum: { payment_amount: true },
-          })
-        : Promise.resolve(null),
-    ]);
-
-  const periodSum = Number(periodRevenue?._sum?.payment_amount ?? 0);
+  const todaySum = Number(todayRevenue?._sum?.payment_amount ?? 0);
   const filteredSum = visits.reduce(
     (sum, v) => sum + Number(v.payment_amount ?? 0),
     0,
@@ -131,38 +97,21 @@ export default async function VisitsPage({
     <>
       <Topbar title="Tashriflar" />
       <main className="flex-1 p-6">
-        <div className="mb-4">
-          <PeriodFilter
-            period={period}
-            sfrom={sfrom}
-            sto={sto}
-            from={from}
-            to={to}
-          />
-        </div>
-
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
           <StatCard
-            label="Tashriflar"
-            value={String(periodVisits)}
+            label="Bugungi tashriflar"
+            value={String(todayVisits)}
             color="text-emerald-600"
           />
           <StatCard
-            label="Tushum"
-            value={formatMoney(periodSum)}
+            label="Bugungi tushum"
+            value={formatMoney(todaySum)}
             color="text-amber-600"
           />
         </div>
 
         <div className="flex items-center justify-between mb-4 gap-4 flex-wrap">
           <form className="flex items-center gap-2">
-            <input type="hidden" name="period" value={period} />
-            {period === "custom" && (
-              <>
-                <input type="hidden" name="sfrom" value={sfrom ?? ""} />
-                <input type="hidden" name="sto" value={sto ?? ""} />
-              </>
-            )}
             <input
               type="date"
               name="from"
@@ -211,10 +160,11 @@ export default async function VisitsPage({
             <thead>
               <tr className="bg-slate-50 text-left text-slate-600 border-b border-slate-200">
                 <th className="px-4 py-3 font-medium">Sana</th>
+                <th className="px-4 py-3 font-medium">Bemor ID</th>
                 <th className="px-4 py-3 font-medium">Bemor</th>
                 <th className="px-4 py-3 font-medium">Doctor</th>
                 <th className="px-4 py-3 font-medium">Tashxis</th>
-                <th className="px-4 py-3 font-medium">Bajarilgan ishlar</th>
+                <th className="px-4 py-3 font-medium">To'lov turi</th>
                 <th className="px-4 py-3 font-medium text-right">To'lov</th>
                 <th className="px-4 py-3 font-medium text-right">Amallar</th>
               </tr>
@@ -223,7 +173,7 @@ export default async function VisitsPage({
               {visits.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={7}
+                    colSpan={8}
                     className="px-4 py-12 text-center text-slate-400"
                   >
                     Tashriflar topilmadi.
@@ -237,6 +187,9 @@ export default async function VisitsPage({
                   >
                     <td className="px-4 py-3 whitespace-nowrap text-slate-700">
                       {formatDate(v.visit_date)}
+                    </td>
+                    <td className="px-4 py-3 text-slate-500 whitespace-nowrap">
+                      #{v.patient_id}
                     </td>
                     <td className="px-4 py-3">
                       <Link
@@ -252,8 +205,8 @@ export default async function VisitsPage({
                     <td className="px-4 py-3 text-slate-600 max-w-xs">
                       {v.diagnosis ?? "-"}
                     </td>
-                    <td className="px-4 py-3 text-slate-600 max-w-xs">
-                      {v.performed_work ?? "-"}
+                    <td className="px-4 py-3 text-slate-600 whitespace-nowrap">
+                      {formatPaymentType(v.payment_type)}
                     </td>
                     <td className="px-4 py-3 text-right font-medium text-slate-800 whitespace-nowrap">
                       {formatMoney(Number(v.payment_amount ?? 0))}
@@ -273,6 +226,7 @@ export default async function VisitsPage({
                             v.payment_amount != null
                               ? String(v.payment_amount)
                               : "",
+                          payment_type: v.payment_type ?? "",
                           additional_info: v.additional_info ?? "",
                         }}
                         doctors={doctors}

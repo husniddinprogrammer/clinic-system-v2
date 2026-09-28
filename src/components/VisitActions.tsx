@@ -19,6 +19,7 @@ type VisitData = {
   diagnosis: string;
   performed_work: string;
   payment_amount: string;
+  payment_type: string;
   additional_info: string;
 };
 
@@ -255,6 +256,22 @@ function VisitForm({
             className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="100 000"
           />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1.5">
+            To'lov turi
+          </label>
+          <select
+            name="payment_type"
+            defaultValue={initial?.payment_type ?? "CASH"}
+            required
+            className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="CASH">Naqd</option>
+            <option value="CARD">Plastik</option>
+            <option value="CLICK">Click</option>
+          </select>
         </div>
       </div>
 

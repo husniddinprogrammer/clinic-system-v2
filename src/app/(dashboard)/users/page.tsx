@@ -39,7 +39,7 @@ export default async function UsersPage() {
       <main className="flex-1 p-6">
         <div className="flex items-center justify-between mb-4">
           <p className="text-sm text-slate-500">
-            Doctor va hamshiralarni boshqarish. ADMIN yaratib bo'lmaydi.
+            Doctorlarni boshqarish. ADMIN yaratib bo'lmaydi.
           </p>
           <UserActions mode="create" />
         </div>

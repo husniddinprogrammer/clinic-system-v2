@@ -40,16 +40,6 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     "visits:edit",
     "reports:view",
   ],
-  NURSE: [
-    "dashboard:view",
-    "patients:view",
-    "patients:create",
-    "patients:edit",
-    "visits:view",
-    "visits:create",
-    "visits:edit",
-    "reports:view",
-  ],
 };
 
 export function getPermissions(role: Role): Permission[] {

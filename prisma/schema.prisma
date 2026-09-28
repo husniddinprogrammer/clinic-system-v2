@@ -11,7 +11,12 @@ datasource db {
 enum Role {
   ADMIN
   DOCTOR
-  NURSE
+}
+
+enum PaymentType {
+  CASH
+  CARD
+  CLICK
 }
 
 model User {
@@ -19,7 +24,7 @@ model User {
   username     String   @unique
   password_hash String
   full_name    String
-  role         Role     @default(NURSE)
+  role         Role     @default(DOCTOR)
   is_active    Boolean  @default(true)
   created_at   DateTime @default(now())
   updated_at   DateTime @updatedAt
@@ -51,6 +56,7 @@ model Visit {
   visit_date      DateTime  @default(now())
   performed_work  String?
   payment_amount  Decimal?  @db.Decimal(12, 2)
+  payment_type    PaymentType?
   additional_info String?
   created_at      DateTime  @default(now())
   updated_at      DateTime  @updatedAt
@@ -61,4 +67,12 @@ model Visit {
   @@index([patient_id])
   @@index([doctor_id])
   @@index([visit_date])
+}
+
+model ClinicSettings {
+  id         Int      @id @default(1)
+  name       String   @default("Klinika")
+  logo       Bytes?
+  logo_mime  String?
+  updated_at DateTime @updatedAt
 }

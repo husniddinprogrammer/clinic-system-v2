@@ -7,7 +7,7 @@ import { hashPassword } from "@/lib/auth";
 import type { Role } from "@prisma/client";
 
 function validRole(r: string): Role | null {
-  if (r === "DOCTOR" || r === "NURSE") return r;
+  if (r === "DOCTOR") return r;
   return null;
 }
 
@@ -23,7 +23,7 @@ export async function createUser(formData: FormData) {
   if (!username || !full_name || !password) {
     throw new Error("Barcha maydonlar to'ldirilishi shart.");
   }
-  if (!role) throw new Error("Faqat DOCTOR yoki NURSE yaratish mumkin.");
+  if (!role) throw new Error("Faqat DOCTOR yaratish mumkin.");
   if (password.length < 4) throw new Error("Parol kamida 4 ta belgi bo'lishi shart.");
 
   const existing = await prisma.user.findUnique({ where: { username } });
@@ -49,10 +49,14 @@ export async function updateUser(formData: FormData) {
   if (!id || !full_name) throw new Error("Noto'g'ri ma'lumot.");
   if (role && !validRole(role as string)) throw new Error("Noto'g'ri role.");
 
+  const target = await prisma.user.findUnique({ where: { id } });
+  if (!target) throw new Error("User topilmadi.");
+
   const data: { full_name: string; role?: Role; password_hash?: string } = {
     full_name,
   };
-  if (role) data.role = role;
+  // ADMIN role'ini bu yerda o'zgartirib bo'lmaydi
+  if (role && target.role !== "ADMIN") data.role = role;
   if (password) {
     if (password.length < 4) throw new Error("Parol kamida 4 ta belgi bo'lishi shart.");
     data.password_hash = await hashPassword(password);

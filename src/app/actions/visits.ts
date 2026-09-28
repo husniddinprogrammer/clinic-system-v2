@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
+import type { PaymentType } from "@prisma/client";
 
 function parseDate(value: string): Date {
   if (!value) return new Date();
@@ -16,6 +17,11 @@ function num(value: string | null | undefined): number | null {
   if (!value) return null;
   const n = parseFloat(String(value).replace(/\s/g, "").replace(",", "."));
   return isNaN(n) ? null : n;
+}
+
+function paymentType(value: string): PaymentType | null {
+  if (value === "CASH" || value === "CARD" || value === "CLICK") return value;
+  return null;
 }
 
 export async function createVisit(formData: FormData) {
@@ -34,10 +40,12 @@ export async function createVisit(formData: FormData) {
   const diagnosis = String(formData.get("diagnosis") ?? "").trim() || null;
   const performed_work = String(formData.get("performed_work") ?? "").trim() || null;
   const payment_amount = num(String(formData.get("payment_amount") ?? ""));
+  const payment_type = paymentType(String(formData.get("payment_type") ?? ""));
   const additional_info = String(formData.get("additional_info") ?? "").trim() || null;
 
   if (!patient_id || !doctor_id) throw new Error("Bemor va doctor tanlanishi shart.");
   if (payment_amount === null) throw new Error("To'lov summasi kiritilishi shart.");
+  if (payment_type === null) throw new Error("To'lov turi tanlanishi shart.");
   if (!diagnosis || !performed_work) {
     throw new Error("Tashxis va bajarilgan ishlar to'ldirilishi shart.");
   }
@@ -50,6 +58,7 @@ export async function createVisit(formData: FormData) {
       diagnosis,
       performed_work,
       payment_amount,
+      payment_type,
       additional_info,
     },
   });
@@ -72,10 +81,12 @@ export async function updateVisit(formData: FormData) {
   const diagnosis = String(formData.get("diagnosis") ?? "").trim() || null;
   const performed_work = String(formData.get("performed_work") ?? "").trim() || null;
   const payment_amount = num(String(formData.get("payment_amount") ?? ""));
+  const payment_type = paymentType(String(formData.get("payment_type") ?? ""));
   const additional_info = String(formData.get("additional_info") ?? "").trim() || null;
 
   if (!id || !patient_id || !doctor_id) throw new Error("Noto'g'ri ma'lumot.");
   if (payment_amount === null) throw new Error("To'lov summasi kiritilishi shart.");
+  if (payment_type === null) throw new Error("To'lov turi tanlanishi shart.");
   if (!diagnosis || !performed_work) {
     throw new Error("Tashxis va bajarilgan ishlar to'ldirilishi shart.");
   }
@@ -89,6 +100,7 @@ export async function updateVisit(formData: FormData) {
       diagnosis,
       performed_work,
       payment_amount,
+      payment_type,
       additional_info,
     },
   });

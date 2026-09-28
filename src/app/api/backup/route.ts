@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { execFile } from "child_process";
 import { promisify } from "util";
-import { readdir, stat, mkdir, unlink } from "fs/promises";
+import { readdir, stat, mkdir, unlink, writeFile } from "fs/promises";
 import path from "path";
 
 const execFileAsync = promisify(execFile);
@@ -21,6 +21,48 @@ function getEnv(): NodeJS.ProcessEnv {
     ...process.env,
     PGPASSWORD: PG_PASSWORD,
   };
+}
+
+function isValidFileName(name: string): boolean {
+  return (
+    !!name &&
+    name.endsWith(".sql") &&
+    !name.includes("..") &&
+    !name.includes("/") &&
+    !name.includes("\\")
+  );
+}
+
+async function restoreFromFile(filePath: string) {
+  const psql = path.join(PG_BIN, "psql.exe");
+  await execFileAsync(
+    psql,
+    [
+      "-h", PG_HOST,
+      "-p", PG_PORT,
+      "-U", PG_USER,
+      "-d", PG_DATABASE,
+      "-f", filePath,
+    ],
+    { env: getEnv(), maxBuffer: 50 * 1024 * 1024 },
+  );
+
+  // Restore'dan keyin sequence'larni sinxronlash —
+  // aks holda yangi yozuvlar "unique constraint" xatosi beradi
+  await execFileAsync(
+    psql,
+    [
+      "-h", PG_HOST,
+      "-p", PG_PORT,
+      "-U", PG_USER,
+      "-d", PG_DATABASE,
+      "-c",
+      `SELECT setval('"User_id_seq"', COALESCE((SELECT MAX(id) FROM "User"), 1));
+       SELECT setval('"Patient_id_seq"', COALESCE((SELECT MAX(id) FROM "Patient"), 1));
+       SELECT setval('"Visit_id_seq"', COALESCE((SELECT MAX(id) FROM "Visit"), 1));`,
+    ],
+    { env: getEnv(), maxBuffer: 50 * 1024 * 1024 },
+  );
 }
 
 export async function GET(request: NextRequest) {
@@ -59,8 +101,8 @@ export async function GET(request: NextRequest) {
   }
 
   if (action === "download") {
-    const name = searchParams.get("file");
-    if (!name || name.includes("..") || name.includes("/") || name.includes("\\")) {
+    const name = searchParams.get("file") ?? "";
+    if (!isValidFileName(name)) {
       return NextResponse.json({ error: "Noto'g'ri fayl" }, { status: 400 });
     }
     try {
@@ -86,6 +128,45 @@ export async function POST(request: NextRequest) {
   if (!user) return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
   if (user.role !== "ADMIN") {
     return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
+  }
+
+  const contentType = request.headers.get("content-type") ?? "";
+
+  // Kompyuterdan .sql fayl yuklab restore qilish
+  if (contentType.includes("multipart/form-data")) {
+    try {
+      const formData = await request.formData();
+      const file = formData.get("file");
+      if (!(file instanceof File) || file.size === 0) {
+        return NextResponse.json(
+          { error: "Fayl topilmadi." },
+          { status: 400 },
+        );
+      }
+
+      const origName = path
+        .basename(file.name)
+        .replace(/[^a-zA-Z0-9_.-]/g, "_");
+      if (!origName.endsWith(".sql")) {
+        return NextResponse.json(
+          { error: "Faqat .sql fayl yuklash mumkin." },
+          { status: 400 },
+        );
+      }
+
+      await mkdir(BACKUP_DIR, { recursive: true });
+      const now = new Date();
+      const stamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}_${String(now.getHours()).padStart(2, "0")}${String(now.getMinutes()).padStart(2, "0")}${String(now.getSeconds()).padStart(2, "0")}`;
+      const fileName = `upload_${stamp}_${origName}`;
+      const filePath = path.join(BACKUP_DIR, fileName);
+      await writeFile(filePath, Buffer.from(await file.arrayBuffer()));
+
+      await restoreFromFile(filePath);
+      return NextResponse.json({ ok: true, file: fileName });
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Xatolik";
+      return NextResponse.json({ error: message }, { status: 500 });
+    }
   }
 
   try {
@@ -117,7 +198,7 @@ export async function POST(request: NextRequest) {
 
     if (action === "restore") {
       const name = String(body.file ?? "");
-      if (!name || name.includes("..") || name.includes("/") || name.includes("\\")) {
+      if (!isValidFileName(name)) {
         return NextResponse.json({ error: "Noto'g'ri fayl" }, { status: 400 });
       }
       const filePath = path.join(BACKUP_DIR, name);
@@ -127,25 +208,13 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Fayl topilmadi" }, { status: 404 });
       }
 
-      const psql = path.join(PG_BIN, "psql.exe");
-      await execFileAsync(
-        psql,
-        [
-          "-h", PG_HOST,
-          "-p", PG_PORT,
-          "-U", PG_USER,
-          "-d", PG_DATABASE,
-          "-f", filePath,
-        ],
-        { env: getEnv(), maxBuffer: 50 * 1024 * 1024 },
-      );
-
+      await restoreFromFile(filePath);
       return NextResponse.json({ ok: true });
     }
 
     if (action === "delete") {
       const name = String(body.file ?? "");
-      if (!name || name.includes("..") || name.includes("/") || name.includes("\\")) {
+      if (!isValidFileName(name)) {
         return NextResponse.json({ error: "Noto'g'ri fayl" }, { status: 400 });
       }
       const filePath = path.join(BACKUP_DIR, name);

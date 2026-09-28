@@ -151,9 +151,6 @@ export async function POST(request: NextRequest) {
       select: { id: true },
     });
     let defaultDoctorId = user.id;
-    if (user.role !== "DOCTOR" && user.role !== "ADMIN") {
-      defaultDoctorId = doctors[0]?.id ?? user.id;
-    }
     if (user.role === "ADMIN" && doctors.length > 0) {
       defaultDoctorId = doctors[0].id;
     }

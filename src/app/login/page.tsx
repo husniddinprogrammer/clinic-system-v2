@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
+import { getClinicSettings } from "@/lib/settings";
 import { LoginForm } from "@/components/LoginForm";
 
 export default async function LoginPage() {
@@ -7,5 +8,15 @@ export default async function LoginPage() {
   if (user) {
     redirect("/visits");
   }
-  return <LoginForm />;
+  const clinic = await getClinicSettings();
+  return (
+    <LoginForm
+      clinicName={clinic.name}
+      logoUrl={
+        clinic.hasLogo
+          ? `/api/settings?action=logo&v=${clinic.updatedAt.getTime()}`
+          : null
+      }
+    />
+  );
 }

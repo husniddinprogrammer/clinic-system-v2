@@ -6,7 +6,7 @@ import { hasPermission } from "@/lib/permissions";
 import { Topbar } from "@/components/Topbar";
 import { PatientActions } from "@/components/PatientActions";
 import { VisitActions } from "@/components/VisitActions";
-import { formatDate, formatMoney, toInputDate, calcAge } from "@/lib/utils";
+import { formatDate, formatMoney, formatPaymentType, toInputDate, calcAge } from "@/lib/utils";
 
 export default async function PatientProfilePage({
   params,
@@ -133,6 +133,7 @@ export default async function PatientProfilePage({
                 <th className="px-4 py-3 font-medium">Doctor</th>
                 <th className="px-4 py-3 font-medium">Tashxis</th>
                 <th className="px-4 py-3 font-medium">Bajarilgan ishlar</th>
+                <th className="px-4 py-3 font-medium">To'lov turi</th>
                 <th className="px-4 py-3 font-medium text-right">To'lov</th>
                 <th className="px-4 py-3 font-medium">Qo'shimcha</th>
                 <th className="px-4 py-3 font-medium text-right">Amallar</th>
@@ -142,7 +143,7 @@ export default async function PatientProfilePage({
               {patient.visits.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={7}
+                    colSpan={8}
                     className="px-4 py-12 text-center text-slate-400"
                   >
                     Tashriflar yo'q.
@@ -166,6 +167,9 @@ export default async function PatientProfilePage({
                     <td className="px-4 py-3 text-slate-600 max-w-xs">
                       {v.performed_work ?? "-"}
                     </td>
+                    <td className="px-4 py-3 text-slate-600 whitespace-nowrap">
+                      {formatPaymentType(v.payment_type)}
+                    </td>
                     <td className="px-4 py-3 text-right font-medium text-slate-800 whitespace-nowrap">
                       {formatMoney(Number(v.payment_amount ?? 0))}
                     </td>
@@ -186,6 +190,7 @@ export default async function PatientProfilePage({
                             v.payment_amount != null
                               ? String(v.payment_amount)
                               : "",
+                          payment_type: v.payment_type ?? "",
                           additional_info: v.additional_info ?? "",
                         }}
                         doctors={doctors}

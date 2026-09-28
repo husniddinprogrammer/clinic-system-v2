@@ -73,14 +73,18 @@ function UserForm({
         <label className="block text-sm font-medium text-slate-700 mb-1.5">
           Role
         </label>
-        <select
-          name="role"
-          defaultValue={initial?.role ?? "DOCTOR"}
-          className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="DOCTOR">DOCTOR</option>
-          <option value="NURSE">NURSE</option>
-        </select>
+        {initial?.role === "ADMIN" ? (
+          <div className="px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50 text-slate-500">
+            ADMIN
+          </div>
+        ) : (
+          <>
+            <input type="hidden" name="role" value="DOCTOR" />
+            <div className="px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50 text-slate-500">
+              DOCTOR
+            </div>
+          </>
+        )}
       </div>
       <div>
         <label className="block text-sm font-medium text-slate-700 mb-1.5">
@@ -140,7 +144,7 @@ export function UserActions({
         <Modal
           open={showCreate}
           onClose={() => setShowCreate(false)}
-          title="Yangi doctor/hamshira qo'shish"
+          title="Yangi doctor qo'shish"
         >
           <UserForm action={createUser} onClose={() => setShowCreate(false)} />
         </Modal>

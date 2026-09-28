@@ -13,17 +13,25 @@ type NavItem = {
 };
 
 const NAV_ITEMS: NavItem[] = [
-  { label: "Tashriflar", href: "/visits", icon: "visits", roles: ["ADMIN", "DOCTOR", "NURSE"] },
-  { label: "Bemorlar", href: "/patients", icon: "patients", roles: ["ADMIN", "DOCTOR", "NURSE"] },
-  { label: "Hisobotlar", href: "/reports", icon: "reports", roles: ["ADMIN", "DOCTOR", "NURSE"] },
-  { label: "Excel Import", href: "/import", icon: "import", roles: ["ADMIN", "DOCTOR", "NURSE"] },
+  { label: "Tashriflar", href: "/visits", icon: "visits", roles: ["ADMIN", "DOCTOR"] },
+  { label: "Bemorlar", href: "/patients", icon: "patients", roles: ["ADMIN", "DOCTOR"] },
+  { label: "Hisobotlar", href: "/reports", icon: "reports", roles: ["ADMIN", "DOCTOR"] },
   { label: "Doktorlar", href: "/doctors", icon: "doctors", roles: ["ADMIN"] },
   { label: "User Management", href: "/users", icon: "users", roles: ["ADMIN"] },
-  { label: "Backup", href: "/backup", icon: "backup", roles: ["ADMIN"] },
-  { label: "Sozlamalar", href: "/settings", icon: "settings", roles: ["ADMIN"] },
+  { label: "Sozlamalar", href: "/settings", icon: "settings", roles: ["ADMIN", "DOCTOR"] },
 ];
 
-export function Sidebar({ role, fullName }: { role: Role; fullName: string }) {
+export function Sidebar({
+  role,
+  fullName,
+  clinicName = "Klinika",
+  logoUrl,
+}: {
+  role: Role;
+  fullName: string;
+  clinicName?: string;
+  logoUrl?: string | null;
+}) {
   const pathname = usePathname();
   const items = NAV_ITEMS.filter((item) => item.roles.includes(role));
 
@@ -31,11 +39,22 @@ export function Sidebar({ role, fullName }: { role: Role; fullName: string }) {
     <aside className="w-60 bg-slate-800 text-slate-100 flex flex-col h-screen sticky top-0 shrink-0">
       <div className="px-5 py-5 border-b border-slate-700">
         <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-lg bg-blue-600 text-white flex items-center justify-center text-xl font-bold">
-            +
-          </div>
-          <div>
-            <div className="font-semibold text-sm leading-tight">Klinika</div>
+          {logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={logoUrl}
+              alt={clinicName}
+              className="w-9 h-9 rounded-lg object-cover shrink-0"
+            />
+          ) : (
+            <div className="w-9 h-9 rounded-lg bg-blue-600 text-white flex items-center justify-center text-xl font-bold shrink-0">
+              +
+            </div>
+          )}
+          <div className="min-w-0">
+            <div className="font-semibold text-sm leading-tight truncate">
+              {clinicName}
+            </div>
             <div className="text-xs text-slate-400 leading-tight">Boshqaruv tizimi</div>
           </div>
         </div>

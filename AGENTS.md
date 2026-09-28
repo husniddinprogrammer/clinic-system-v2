@@ -27,7 +27,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 ## Auth
 - JWT session in HttpOnly cookie (`clinic_session`)
 - Password hashing: bcryptjs
-- Roles: ADMIN, DOCTOR, NURSE
+- Roles: ADMIN, DOCTOR
 - Initial admin: `admin` / `admin123`
 
 ## Architecture

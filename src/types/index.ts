@@ -1,4 +1,4 @@
-import type { Role } from "@prisma/client";
+import type { Role, PaymentType } from "@prisma/client";
 
 export type SafeUser = {
   id: number;
@@ -27,6 +27,7 @@ export type VisitWithRelations = {
   visit_date: Date;
   performed_work: string | null;
   payment_amount: number | null;
+  payment_type: PaymentType | null;
   additional_info: string | null;
   created_at: Date;
   patient: { id: number; full_name: string };
