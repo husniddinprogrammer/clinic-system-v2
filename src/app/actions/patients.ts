@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
+import { logActivity } from "@/lib/activity";
 
 function parseBirthDate(value: string): Date | null {
   if (!value) return null;
@@ -26,8 +27,17 @@ export async function createPatient(formData: FormData) {
     throw new Error("Barcha maydonlar to'ldirilishi shart.");
   }
 
-  await prisma.patient.create({
+  const patient = await prisma.patient.create({
     data: { full_name, phone, birth_date },
+  });
+
+  await logActivity({
+    type: "PATIENT",
+    action: "create",
+    message: `Yangi bemor qo'shildi: ${full_name} (${phone})`,
+    userId: user.id,
+    userName: user.full_name,
+    entityId: patient.id,
   });
 
   revalidatePath("/patients");
@@ -50,6 +60,15 @@ export async function createPatientInline(formData: FormData) {
 
   const patient = await prisma.patient.create({
     data: { full_name, phone, birth_date },
+  });
+
+  await logActivity({
+    type: "PATIENT",
+    action: "create",
+    message: `Yangi bemor qo'shildi: ${full_name} (${phone})`,
+    userId: user.id,
+    userName: user.full_name,
+    entityId: patient.id,
   });
 
   revalidatePath("/patients");
@@ -78,6 +97,15 @@ export async function updatePatient(formData: FormData) {
     data: { full_name, phone, birth_date },
   });
 
+  await logActivity({
+    type: "PATIENT",
+    action: "update",
+    message: `Bemor ma'lumotlari yangilandi: ${full_name}`,
+    userId: user.id,
+    userName: user.full_name,
+    entityId: id,
+  });
+
   revalidatePath("/patients");
   revalidatePath(`/patients/${id}`);
 }
@@ -92,9 +120,18 @@ export async function togglePatientActive(formData: FormData) {
   const is_active = formData.get("is_active") === "true";
   if (!id) throw new Error("Noto'g'ri ma'lumot.");
 
-  await prisma.patient.update({
+  const patient = await prisma.patient.update({
     where: { id },
     data: { is_active },
+  });
+
+  await logActivity({
+    type: "PATIENT",
+    action: is_active ? "activate" : "deactivate",
+    message: `Bemor ${is_active ? "aktivlashtirildi" : "deaktiv qilindi"}: ${patient.full_name}`,
+    userId: user.id,
+    userName: user.full_name,
+    entityId: id,
   });
 
   revalidatePath("/patients");

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyPassword, createSession } from "@/lib/auth";
+import { logActivity } from "@/lib/activity";
 
 export async function POST(request: NextRequest) {
   try {
@@ -37,6 +38,15 @@ export async function POST(request: NextRequest) {
       username: user.username,
       role: user.role,
       fullName: user.full_name,
+    });
+
+    await logActivity({
+      type: "LOGIN",
+      action: "login",
+      message: `Tizimga kirdi: ${user.full_name} (${user.username}, ${user.role})`,
+      userId: user.id,
+      userName: user.full_name,
+      entityId: user.id,
     });
 
     return NextResponse.json({ ok: true, role: user.role });

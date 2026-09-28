@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
+import { logActivity } from "@/lib/activity";
+import { formatMoney, formatPaymentType } from "@/lib/utils";
 import type { PaymentType } from "@prisma/client";
 
 function parseDate(value: string): Date {
@@ -32,8 +34,8 @@ export async function createVisit(formData: FormData) {
 
   const patient_id = Number(formData.get("patient_id"));
   let doctor_id = Number(formData.get("doctor_id"));
-  // Doctor auto-selects own account
-  if (!doctor_id && user.role === "DOCTOR") {
+  // Doctor faqat o'z nomiga tashrif yarata oladi
+  if (user.role === "DOCTOR") {
     doctor_id = user.id;
   }
   const visit_date = parseDate(String(formData.get("visit_date") ?? ""));
@@ -52,13 +54,13 @@ export async function createVisit(formData: FormData) {
 
   const patient = await prisma.patient.findUnique({
     where: { id: patient_id },
-    select: { is_active: true },
+    select: { is_active: true, full_name: true },
   });
   if (!patient?.is_active) {
     throw new Error("Bu bemor deaktiv holatda — unga tashrif qo'shib bo'lmaydi.");
   }
 
-  await prisma.visit.create({
+  const visit = await prisma.visit.create({
     data: {
       patient_id,
       doctor_id,
@@ -70,6 +72,25 @@ export async function createVisit(formData: FormData) {
       additional_info,
     },
   });
+
+  await logActivity({
+    type: "VISIT",
+    action: "create",
+    message: `Yangi tashrif: ${patient.full_name} — ${diagnosis}`,
+    userId: user.id,
+    userName: user.full_name,
+    entityId: visit.id,
+  });
+  if (payment_amount && payment_amount > 0) {
+    await logActivity({
+      type: "PAYMENT",
+      action: "create",
+      message: `To'lov qabul qilindi: ${formatMoney(payment_amount)} so'm (${formatPaymentType(payment_type)}) — ${patient.full_name}`,
+      userId: user.id,
+      userName: user.full_name,
+      entityId: visit.id,
+    });
+  }
 
   revalidatePath("/visits");
   revalidatePath(`/patients/${patient_id}`);
@@ -84,7 +105,10 @@ export async function updateVisit(formData: FormData) {
 
   const id = Number(formData.get("id"));
   const patient_id = Number(formData.get("patient_id"));
-  const doctor_id = Number(formData.get("doctor_id"));
+  let doctor_id = Number(formData.get("doctor_id"));
+  if (user.role === "DOCTOR") {
+    doctor_id = user.id;
+  }
   const visit_date = parseDate(String(formData.get("visit_date") ?? ""));
   const diagnosis = String(formData.get("diagnosis") ?? "").trim() || null;
   const performed_work = String(formData.get("performed_work") ?? "").trim() || null;
@@ -97,6 +121,26 @@ export async function updateVisit(formData: FormData) {
   if (payment_type === null) throw new Error("To'lov turi tanlanishi shart.");
   if (!diagnosis || !performed_work) {
     throw new Error("Tashxis va bajarilgan ishlar to'ldirilishi shart.");
+  }
+
+  const [oldVisit, patient] = await Promise.all([
+    prisma.visit.findUnique({
+      where: { id },
+      select: {
+        payment_amount: true,
+        payment_type: true,
+        doctor_id: true,
+      },
+    }),
+    prisma.patient.findUnique({
+      where: { id: patient_id },
+      select: { full_name: true },
+    }),
+  ]);
+
+  if (!oldVisit) throw new Error("Tashrif topilmadi.");
+  if (user.role === "DOCTOR" && oldVisit.doctor_id !== user.id) {
+    throw new Error("FORBIDDEN");
   }
 
   await prisma.visit.update({
@@ -112,6 +156,28 @@ export async function updateVisit(formData: FormData) {
       additional_info,
     },
   });
+
+  await logActivity({
+    type: "VISIT",
+    action: "update",
+    message: `Tashrif yangilandi: ${patient?.full_name ?? `#${patient_id}`} — ${diagnosis}`,
+    userId: user.id,
+    userName: user.full_name,
+    entityId: id,
+  });
+  const paymentChanged =
+    Number(oldVisit?.payment_amount ?? 0) !== payment_amount ||
+    oldVisit?.payment_type !== payment_type;
+  if (paymentChanged && payment_amount > 0) {
+    await logActivity({
+      type: "PAYMENT",
+      action: "update",
+      message: `To'lov o'zgartirildi: ${formatMoney(payment_amount)} so'm (${formatPaymentType(payment_type)}) — ${patient?.full_name ?? `#${patient_id}`}`,
+      userId: user.id,
+      userName: user.full_name,
+      entityId: id,
+    });
+  }
 
   revalidatePath("/visits");
   revalidatePath(`/patients/${patient_id}`);
@@ -129,9 +195,26 @@ export async function toggleVisitActive(formData: FormData) {
   const is_active = formData.get("is_active") === "true";
   if (!id) throw new Error("Noto'g'ri ma'lumot.");
 
+  if (user.role === "DOCTOR") {
+    const v = await prisma.visit.findUnique({
+      where: { id },
+      select: { doctor_id: true },
+    });
+    if (!v || v.doctor_id !== user.id) throw new Error("FORBIDDEN");
+  }
+
   await prisma.visit.update({
     where: { id },
     data: { is_active },
+  });
+
+  await logActivity({
+    type: "VISIT",
+    action: is_active ? "activate" : "deactivate",
+    message: `Tashrif #${id} ${is_active ? "aktivlashtirildi" : "deaktiv qilindi"}`,
+    userId: user.id,
+    userName: user.full_name,
+    entityId: id,
   });
 
   revalidatePath("/visits");

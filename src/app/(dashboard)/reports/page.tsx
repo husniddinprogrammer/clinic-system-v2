@@ -24,16 +24,19 @@ export default async function ReportsPage({
   const toDate = to ? new Date(to) : defaultTo;
   toDate.setHours(23, 59, 59, 999);
 
+  const isAdmin = user.role === "ADMIN";
+
   const where = {
     visit_date: { gte: fromDate, lte: toDate },
     is_active: true,
+    ...(isAdmin ? {} : { doctor_id: user.id }),
   };
 
-  const [visits, visitsTotal, sumAgg, newPatients, byDoctorRows] =
+  const [visits, visitsTotal, sumAgg, myPatientIds, byDoctorRows] =
     await Promise.all([
       prisma.visit.findMany({
         where,
-        orderBy: { visit_date: "desc" },
+        orderBy: { id: "asc" },
         include: {
           patient: { select: { full_name: true } },
           doctor: { select: { full_name: true } },
@@ -43,16 +46,22 @@ export default async function ReportsPage({
       }),
       prisma.visit.count({ where }),
       prisma.visit.aggregate({ where, _sum: { payment_amount: true } }),
-      prisma.patient.count({
-        where: { created_at: { gte: fromDate, lte: toDate } },
-      }),
-      prisma.visit.groupBy({
-        by: ["doctor_id"],
+      prisma.visit.findMany({
         where,
-        _count: { _all: true },
-        _sum: { payment_amount: true },
+        select: { patient_id: true },
+        distinct: ["patient_id"],
       }),
+      isAdmin
+        ? prisma.visit.groupBy({
+            by: ["doctor_id"],
+            where,
+            _count: { _all: true },
+            _sum: { payment_amount: true },
+          })
+        : [],
     ]);
+
+  const newPatients = myPatientIds.length;
 
   const doctorIds = byDoctorRows.map((r) => r.doctor_id);
   const doctorNames = doctorIds.length
@@ -109,7 +118,7 @@ export default async function ReportsPage({
           </div>
           <div className="bg-white rounded-xl border border-slate-200 p-5">
             <div className="text-xs font-medium uppercase text-emerald-600">
-              Yangi bemorlar
+              {isAdmin ? "Yangi bemorlar" : "Mening bemorlarim"}
             </div>
             <div className="text-2xl font-bold text-slate-800 mt-2">
               {newPatients}
@@ -125,7 +134,7 @@ export default async function ReportsPage({
           </div>
         </div>
 
-        {byDoctor.length > 0 && (
+        {isAdmin && byDoctor.length > 0 && (
           <div className="bg-white rounded-xl border border-slate-200 p-5 mb-6">
             <h3 className="text-sm font-semibold text-slate-700 mb-3">
               Doctorlar bo'yicha

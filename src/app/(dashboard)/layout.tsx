@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getClinicSettings } from "@/lib/settings";
 import { Sidebar } from "@/components/Sidebar";
+import { ensureDailyBackup } from "@/lib/backup";
 
 export default async function DashboardLayout({
   children,
@@ -13,6 +14,7 @@ export default async function DashboardLayout({
     redirect("/login");
   }
   const clinic = await getClinicSettings();
+  await ensureDailyBackup();
 
   return (
     <div className="flex h-screen overflow-hidden">

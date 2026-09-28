@@ -30,7 +30,7 @@ export default async function DoctorsPage({
   const [doctors, doctorsTotal] = await Promise.all([
     prisma.user.findMany({
       where: { role: "DOCTOR" },
-      orderBy: { created_at: "desc" },
+      orderBy: { id: "asc" },
       select: {
         id: true,
         username: true,

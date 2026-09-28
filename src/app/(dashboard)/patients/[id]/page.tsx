@@ -32,17 +32,27 @@ export default async function PatientProfilePage({
 
   if (!patient) notFound();
 
+  const isAdmin = user.role === "ADMIN";
+  const visitScope = isAdmin ? {} : { doctor_id: user.id };
+
+  if (!isAdmin) {
+    const ownVisits = await prisma.visit.count({
+      where: { patient_id: patientId, doctor_id: user.id },
+    });
+    if (ownVisits === 0) notFound();
+  }
+
   const [visits, visitsTotal, paymentAgg] = await Promise.all([
     prisma.visit.findMany({
-      where: { patient_id: patientId },
-      orderBy: { visit_date: "desc" },
+      where: { patient_id: patientId, ...visitScope },
+      orderBy: { id: "asc" },
       include: { doctor: { select: { id: true, full_name: true } } },
       skip: (page - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
     }),
-    prisma.visit.count({ where: { patient_id: patientId } }),
+    prisma.visit.count({ where: { patient_id: patientId, ...visitScope } }),
     prisma.visit.aggregate({
-      where: { patient_id: patientId, is_active: true },
+      where: { patient_id: patientId, is_active: true, ...visitScope },
       _sum: { payment_amount: true },
     }),
   ]);
@@ -54,7 +64,6 @@ export default async function PatientProfilePage({
   const canCreateVisit = hasPermission(user.role, "visits:create");
   const canEditVisit = hasPermission(user.role, "visits:edit");
   const canDeleteVisit = hasPermission(user.role, "visits:delete");
-  const isAdmin = user.role === "ADMIN";
 
   const doctors = isAdmin
     ? await prisma.user.findMany({

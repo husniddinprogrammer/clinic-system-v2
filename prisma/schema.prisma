@@ -71,6 +71,28 @@ model Visit {
   @@index([visit_date])
 }
 
+enum ActivityType {
+  PAYMENT
+  VISIT
+  PATIENT
+  DOCTOR
+  LOGIN
+}
+
+model ActivityLog {
+  id         Int          @id @default(autoincrement())
+  type       ActivityType
+  action     String
+  message    String
+  user_id    Int?
+  user_name  String?
+  entity_id  Int?
+  created_at DateTime     @default(now())
+
+  @@index([type])
+  @@index([created_at])
+}
+
 model ClinicSettings {
   id         Int      @id @default(1)
   name       String   @default("Klinika")

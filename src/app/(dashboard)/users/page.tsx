@@ -31,7 +31,7 @@ export default async function UsersPage({
 
   const [users, usersTotal] = await Promise.all([
     prisma.user.findMany({
-      orderBy: { created_at: "desc" },
+      orderBy: { id: "asc" },
       select: {
         id: true,
         username: true,

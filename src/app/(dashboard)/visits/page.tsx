@@ -51,7 +51,11 @@ export default async function VisitsPage({
   const { from, to, page: rawPage } = await searchParams;
   const page = Math.max(1, Number(rawPage) || 1);
 
-  const where: { visit_date?: { gte?: Date; lte?: Date } } = {};
+  const scope = isAdmin ? {} : { doctor_id: user.id };
+
+  const where: { visit_date?: { gte?: Date; lte?: Date }; doctor_id?: number } = {
+    ...scope,
+  };
   if (from) where.visit_date = { ...where.visit_date, gte: new Date(from) };
   if (to) {
     const toDate = new Date(to);
@@ -64,7 +68,10 @@ export default async function VisitsPage({
   todayStart.setHours(0, 0, 0, 0);
   const todayEnd = new Date();
   todayEnd.setHours(23, 59, 59, 999);
-  const todayWhere = { visit_date: { gte: todayStart, lte: todayEnd } };
+  const todayWhere = {
+    visit_date: { gte: todayStart, lte: todayEnd },
+    ...scope,
+  };
 
   const activeWhere = { ...where, is_active: true };
   const activeTodayWhere = { ...todayWhere, is_active: true };
@@ -73,7 +80,7 @@ export default async function VisitsPage({
     await Promise.all([
       prisma.visit.findMany({
         where,
-        orderBy: { visit_date: "desc" },
+        orderBy: { id: "asc" },
         include: {
           patient: { select: { id: true, full_name: true } },
           doctor: { select: { id: true, full_name: true } },

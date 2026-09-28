@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { hashPassword } from "@/lib/auth";
+import { logActivity } from "@/lib/activity";
 import type { Role } from "@prisma/client";
 
 function validRole(r: string): Role | null {
@@ -30,8 +31,17 @@ export async function createUser(formData: FormData) {
   if (existing) throw new Error("Bu username allaqachon mavjud.");
 
   const password_hash = await hashPassword(password);
-  await prisma.user.create({
+  const created = await prisma.user.create({
     data: { username, full_name, role, password_hash, is_active: true },
+  });
+
+  await logActivity({
+    type: "DOCTOR",
+    action: "create",
+    message: `Yangi doktor qo'shildi: ${full_name} (${username})`,
+    userId: admin.id,
+    userName: admin.full_name,
+    entityId: created.id,
   });
 
   revalidatePath("/users");
@@ -63,6 +73,16 @@ export async function updateUser(formData: FormData) {
   }
 
   await prisma.user.update({ where: { id }, data });
+
+  await logActivity({
+    type: "DOCTOR",
+    action: "update",
+    message: `Doktor ma'lumotlari yangilandi: ${full_name}${password ? " (parol o'zgartirildi)" : ""}`,
+    userId: admin.id,
+    userName: admin.full_name,
+    entityId: id,
+  });
+
   revalidatePath("/users");
 }
 
@@ -81,6 +101,15 @@ export async function toggleUserActive(formData: FormData) {
   await prisma.user.update({
     where: { id },
     data: { is_active: !user.is_active },
+  });
+
+  await logActivity({
+    type: "DOCTOR",
+    action: !user.is_active ? "activate" : "deactivate",
+    message: `Doktor ${!user.is_active ? "aktivlashtirildi" : "deaktiv qilindi"}: ${user.full_name}`,
+    userId: admin.id,
+    userName: admin.full_name,
+    entityId: id,
   });
 
   revalidatePath("/users");

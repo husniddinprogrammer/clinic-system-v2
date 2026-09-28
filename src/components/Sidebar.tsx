@@ -18,6 +18,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Hisobotlar", href: "/reports", icon: "reports", roles: ["ADMIN", "DOCTOR"] },
   { label: "Doktorlar", href: "/doctors", icon: "doctors", roles: ["ADMIN"] },
   { label: "User Management", href: "/users", icon: "users", roles: ["ADMIN"] },
+  { label: "Bildirishnomalar", href: "/notifications", icon: "bell", roles: ["ADMIN"] },
   { label: "Sozlamalar", href: "/settings", icon: "settings", roles: ["ADMIN", "DOCTOR"] },
 ];
 

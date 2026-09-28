@@ -19,6 +19,7 @@ export default async function PatientsPage({
   const canCreate = hasPermission(user.role, "patients:create");
   const canEdit = hasPermission(user.role, "patients:edit");
   const canDelete = hasPermission(user.role, "patients:delete");
+  const isAdmin = user.role === "ADMIN";
 
   const { q, page: rawPage } = await searchParams;
   const query = (q ?? "").trim();
@@ -31,14 +32,20 @@ export default async function PatientsPage({
       { phone: { contains: query } },
     ];
   }
+  if (!isAdmin) {
+    where.visits = { some: { doctor_id: user.id } };
+  }
 
   const [patients, patientsTotal] = await Promise.all([
     prisma.patient.findMany({
       where,
-      orderBy: { created_at: "desc" },
+      orderBy: { id: "asc" },
       include: {
         visits: {
-          where: { is_active: true },
+          where: {
+            is_active: true,
+            ...(isAdmin ? {} : { doctor_id: user.id }),
+          },
           select: { visit_date: true, payment_amount: true },
           orderBy: { visit_date: "desc" },
         },

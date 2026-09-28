@@ -1,11 +1,9 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
-import { hasPermission } from "@/lib/permissions";
 import { getClinicSettings } from "@/lib/settings";
 import { Topbar } from "@/components/Topbar";
 import { SettingsPassword } from "@/components/SettingsPassword";
 import { SettingsClinic } from "@/components/SettingsClinic";
-import { SettingsImport } from "@/components/SettingsImport";
 import { SettingsBackup } from "@/components/SettingsBackup";
 
 export default async function SettingsPage() {
@@ -13,7 +11,6 @@ export default async function SettingsPage() {
   if (!user) redirect("/login");
 
   const isAdmin = user.role === "ADMIN";
-  const canImport = hasPermission(user.role, "patients:create");
   const clinic = isAdmin ? await getClinicSettings() : null;
 
   return (
@@ -29,8 +26,6 @@ export default async function SettingsPage() {
         )}
 
         <SettingsPassword />
-
-        {canImport && <SettingsImport />}
 
         {isAdmin && <SettingsBackup />}
 
