@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { hasPermission } from "@/lib/permissions";
 import { Topbar } from "@/components/Topbar";
 import { UserActions } from "@/components/UserActions";
 import { Pagination, PAGE_SIZE } from "@/components/Pagination";
@@ -13,13 +14,13 @@ export default async function UsersPage({
 }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
-  if (user.role !== "ADMIN") {
+  if (!hasPermission(user, "users:manage")) {
     return (
       <>
         <Topbar title="User Management" />
         <main className="flex-1 p-6">
           <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm">
-            Bu sahifaga kirish uchun ruxsat yo'q. Faqat ADMIN kira oladi.
+            Bu sahifaga kirish uchun ruxsat yo&apos;q.
           </div>
         </main>
       </>
@@ -31,12 +32,13 @@ export default async function UsersPage({
 
   const [users, usersTotal] = await Promise.all([
     prisma.user.findMany({
-      orderBy: { id: "asc" },
+      orderBy: { id: "desc" },
       select: {
         id: true,
         username: true,
         full_name: true,
         role: true,
+        permissions: true,
         is_active: true,
         created_at: true,
       },
@@ -54,7 +56,7 @@ export default async function UsersPage({
       <main className="flex-1 p-6">
         <div className="flex items-center justify-between mb-4">
           <p className="text-sm text-slate-500">
-            Doctorlarni boshqarish. ADMIN yaratib bo'lmaydi.
+            Foydalanuvchilarni boshqarish. ADMIN yaratib bo'lmaydi.
           </p>
           <UserActions mode="create" />
         </div>
@@ -120,6 +122,9 @@ export default async function UsersPage({
                         username: u.username,
                         full_name: u.full_name,
                         role: u.role,
+                        permissions: Array.isArray(u.permissions)
+                          ? (u.permissions as string[])
+                          : null,
                         is_active: u.is_active,
                       }}
                     />

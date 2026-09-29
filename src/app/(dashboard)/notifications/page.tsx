@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { hasPermission } from "@/lib/permissions";
 import { Topbar } from "@/components/Topbar";
 import { Pagination, PAGE_SIZE } from "@/components/Pagination";
 import { formatDateTime } from "@/lib/utils";
@@ -40,13 +41,13 @@ export default async function NotificationsPage({
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  if (user.role !== "ADMIN") {
+  if (!hasPermission(user, "notifications:view")) {
     return (
       <>
         <Topbar title="Bildirishnomalar" />
         <main className="flex-1 p-6">
           <div className="bg-white rounded-xl border border-slate-200 p-8 text-center text-slate-500">
-            Bu sahifa faqat administratorlar uchun.
+            Bu sahifaga kirish uchun ruxsat yo&apos;q.
           </div>
         </main>
       </>
@@ -64,7 +65,7 @@ export default async function NotificationsPage({
   const [logs, total] = await Promise.all([
     prisma.activityLog.findMany({
       where,
-      orderBy: { id: "asc" },
+      orderBy: { id: "desc" },
       skip: (page - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
     }),

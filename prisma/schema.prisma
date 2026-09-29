@@ -25,6 +25,7 @@ model User {
   password_hash String
   full_name    String
   role         Role     @default(DOCTOR)
+  permissions  Json?
   is_active    Boolean  @default(true)
   created_at   DateTime @default(now())
   updated_at   DateTime @updatedAt

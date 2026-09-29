@@ -43,9 +43,22 @@ export default async function VisitsPage({
   const user = await getCurrentUser();
   if (!user) return null;
 
-  const canCreate = hasPermission(user.role, "visits:create");
-  const canEdit = hasPermission(user.role, "visits:edit");
-  const canDelete = hasPermission(user.role, "visits:delete");
+  if (!hasPermission(user, "visits:view")) {
+    return (
+      <>
+        <Topbar title="Tashriflar" />
+        <main className="flex-1 p-6">
+          <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm">
+            Bu sahifaga kirish uchun ruxsat yo&apos;q.
+          </div>
+        </main>
+      </>
+    );
+  }
+
+  const canCreate = hasPermission(user, "visits:create");
+  const canEdit = hasPermission(user, "visits:edit");
+  const canDelete = hasPermission(user, "visits:delete");
   const isAdmin = user.role === "ADMIN";
 
   const { from, to, page: rawPage } = await searchParams;
@@ -80,7 +93,7 @@ export default async function VisitsPage({
     await Promise.all([
       prisma.visit.findMany({
         where,
-        orderBy: { id: "asc" },
+        orderBy: { id: "desc" },
         include: {
           patient: { select: { id: true, full_name: true } },
           doctor: { select: { id: true, full_name: true } },

@@ -29,6 +29,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - Password hashing: bcryptjs
 - Roles: ADMIN, DOCTOR
 - Initial admin: `admin` / `admin123`
+- Permissions: `src/lib/permissions.ts` — `hasPermission(user, perm)` checks `User.permissions` (Json array); `null`/missing = role defaults; ADMIN always has all. Per-user overrides editable in User Management.
 
 ## Architecture
 - App Router with route group `(dashboard)` for protected pages

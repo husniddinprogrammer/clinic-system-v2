@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { hasPermission } from "@/lib/permissions";
 import { Topbar } from "@/components/Topbar";
 import { Pagination, PAGE_SIZE } from "@/components/Pagination";
 import { formatDate, formatMoney, toInputDate } from "@/lib/utils";
@@ -11,6 +12,19 @@ export default async function ReportsPage({
 }) {
   const user = await getCurrentUser();
   if (!user) return null;
+
+  if (!hasPermission(user, "reports:view")) {
+    return (
+      <>
+        <Topbar title="Hisobotlar" />
+        <main className="flex-1 p-6">
+          <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm">
+            Bu sahifaga kirish uchun ruxsat yo&apos;q.
+          </div>
+        </main>
+      </>
+    );
+  }
 
   const { from, to, page: rawPage } = await searchParams;
   const page = Math.max(1, Number(rawPage) || 1);
@@ -36,7 +50,7 @@ export default async function ReportsPage({
     await Promise.all([
       prisma.visit.findMany({
         where,
-        orderBy: { id: "asc" },
+        orderBy: { id: "desc" },
         include: {
           patient: { select: { full_name: true } },
           doctor: { select: { full_name: true } },

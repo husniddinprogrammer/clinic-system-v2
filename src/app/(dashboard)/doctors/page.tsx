@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { hasPermission } from "@/lib/permissions";
 import { Topbar } from "@/components/Topbar";
 import { AddDoctorButton, DoctorToggleButton } from "@/components/DoctorActions";
 import { Pagination, PAGE_SIZE } from "@/components/Pagination";
@@ -11,13 +12,13 @@ export default async function DoctorsPage({
   searchParams: Promise<{ page?: string }>;
 }) {
   const user = await getCurrentUser();
-  if (!user || user.role !== "ADMIN") {
+  if (!user || !hasPermission(user, "users:manage")) {
     return (
       <>
         <Topbar title="Doktorlar" />
         <main className="flex-1 p-6">
           <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm">
-            Bu sahifaga kirish uchun ruxsat yo'q. Faqat ADMIN kira oladi.
+            Bu sahifaga kirish uchun ruxsat yo&apos;q.
           </div>
         </main>
       </>
@@ -30,7 +31,7 @@ export default async function DoctorsPage({
   const [doctors, doctorsTotal] = await Promise.all([
     prisma.user.findMany({
       where: { role: "DOCTOR" },
-      orderBy: { id: "asc" },
+      orderBy: { id: "desc" },
       select: {
         id: true,
         username: true,

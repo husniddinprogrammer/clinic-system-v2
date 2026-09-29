@@ -238,6 +238,8 @@ function VisitForm({
             type="date"
             name="visit_date"
             defaultValue={initial?.visit_date ?? toInputDate(new Date())}
+            min={initial?.id ? undefined : toInputDate(new Date())}
+            max={initial?.id ? undefined : toInputDate(new Date())}
             required
             className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />

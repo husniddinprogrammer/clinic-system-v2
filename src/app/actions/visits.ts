@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
 import { logActivity } from "@/lib/activity";
-import { formatMoney, formatPaymentType } from "@/lib/utils";
+import { formatMoney, formatPaymentType, toInputDate } from "@/lib/utils";
 import type { PaymentType } from "@prisma/client";
 
 function parseDate(value: string): Date {
@@ -28,7 +28,7 @@ function paymentType(value: string): PaymentType | null {
 
 export async function createVisit(formData: FormData) {
   const user = await requireUser();
-  if (!hasPermission(user.role, "visits:create")) {
+  if (!hasPermission(user, "visits:create")) {
     throw new Error("FORBIDDEN");
   }
 
@@ -38,7 +38,13 @@ export async function createVisit(formData: FormData) {
   if (user.role === "DOCTOR") {
     doctor_id = user.id;
   }
-  const visit_date = parseDate(String(formData.get("visit_date") ?? ""));
+  const visitDateStr = String(formData.get("visit_date") ?? "").trim();
+  const todayStr = toInputDate(new Date());
+  // Tashrif faqat bugungi sanaga ochiladi — o'tgan yoki kelajak kunga bo'lmaydi
+  if (visitDateStr !== todayStr) {
+    throw new Error("Tashrif faqat bugungi sanaga ochiladi.");
+  }
+  const visit_date = parseDate(visitDateStr);
   const diagnosis = String(formData.get("diagnosis") ?? "").trim() || null;
   const performed_work = String(formData.get("performed_work") ?? "").trim() || null;
   const payment_amount = num(String(formData.get("payment_amount") ?? ""));
@@ -99,7 +105,7 @@ export async function createVisit(formData: FormData) {
 
 export async function updateVisit(formData: FormData) {
   const user = await requireUser();
-  if (!hasPermission(user.role, "visits:edit")) {
+  if (!hasPermission(user, "visits:edit")) {
     throw new Error("FORBIDDEN");
   }
 
@@ -130,6 +136,7 @@ export async function updateVisit(formData: FormData) {
         payment_amount: true,
         payment_type: true,
         doctor_id: true,
+        visit_date: true,
       },
     }),
     prisma.patient.findUnique({
@@ -141,6 +148,16 @@ export async function updateVisit(formData: FormData) {
   if (!oldVisit) throw new Error("Tashrif topilmadi.");
   if (user.role === "DOCTOR" && oldVisit.doctor_id !== user.id) {
     throw new Error("FORBIDDEN");
+  }
+  // Sanani faqat bugungi kunga o'zgartirish mumkin (o'zgartirilmasa eski sana qoladi)
+  const newDateStr = String(formData.get("visit_date") ?? "").trim();
+  if (
+    newDateStr !== toInputDate(oldVisit.visit_date) &&
+    newDateStr !== toInputDate(new Date())
+  ) {
+    throw new Error(
+      "Tashrif sanasini o'tgan yoki kelajak kunga o'zgartirib bo'lmaydi.",
+    );
   }
 
   await prisma.visit.update({
@@ -186,7 +203,7 @@ export async function updateVisit(formData: FormData) {
 
 export async function toggleVisitActive(formData: FormData) {
   const user = await requireUser();
-  if (!hasPermission(user.role, "visits:delete")) {
+  if (!hasPermission(user, "visits:delete")) {
     throw new Error("FORBIDDEN");
   }
 

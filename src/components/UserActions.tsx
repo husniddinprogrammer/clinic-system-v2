@@ -4,12 +4,18 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Modal } from "./Modal";
 import { createUser, updateUser, toggleUserActive } from "@/app/actions/users";
+import {
+  ALL_PERMISSIONS,
+  PERMISSION_LABELS,
+  getRolePermissions,
+} from "@/lib/permissions";
 
 type UserData = {
   id: number;
   username: string;
   full_name: string;
   role: string;
+  permissions?: string[] | null;
   is_active: boolean;
 };
 
@@ -98,6 +104,42 @@ function UserForm({
           className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
       </div>
+      {initial?.role === "ADMIN" ? (
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1.5">
+            Ruxsatlar
+          </label>
+          <div className="px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50 text-slate-500">
+            ADMIN — barcha ruxsatlar
+          </div>
+        </div>
+      ) : (
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1.5">
+            Ruxsatlar
+          </label>
+          <input type="hidden" name="permissions_present" value="1" />
+          <div className="border border-slate-200 rounded-lg p-3 grid grid-cols-2 gap-x-3 gap-y-2">
+            {ALL_PERMISSIONS.map((p) => (
+              <label
+                key={p}
+                className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer"
+              >
+                <input
+                  type="checkbox"
+                  name="permissions"
+                  value={p}
+                  defaultChecked={(
+                    initial?.permissions ?? getRolePermissions("DOCTOR")
+                  ).includes(p)}
+                  className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                />
+                {PERMISSION_LABELS[p]}
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
       {initial && <input type="hidden" name="id" value={initial.id} />}
       <div className="flex gap-2 pt-2">
         <button

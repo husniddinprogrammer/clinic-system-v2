@@ -15,7 +15,7 @@ function parseBirthDate(value: string): Date | null {
 
 export async function createPatient(formData: FormData) {
   const user = await requireUser();
-  if (!hasPermission(user.role, "patients:create")) {
+  if (!hasPermission(user, "patients:create")) {
     throw new Error("FORBIDDEN");
   }
 
@@ -46,7 +46,7 @@ export async function createPatient(formData: FormData) {
 
 export async function createPatientInline(formData: FormData) {
   const user = await requireUser();
-  if (!hasPermission(user.role, "patients:create")) {
+  if (!hasPermission(user, "patients:create")) {
     throw new Error("FORBIDDEN");
   }
 
@@ -79,7 +79,7 @@ export async function createPatientInline(formData: FormData) {
 
 export async function updatePatient(formData: FormData) {
   const user = await requireUser();
-  if (!hasPermission(user.role, "patients:edit")) {
+  if (!hasPermission(user, "patients:edit")) {
     throw new Error("FORBIDDEN");
   }
 
@@ -112,7 +112,7 @@ export async function updatePatient(formData: FormData) {
 
 export async function togglePatientActive(formData: FormData) {
   const user = await requireUser();
-  if (!hasPermission(user.role, "patients:delete")) {
+  if (!hasPermission(user, "patients:delete")) {
     throw new Error("FORBIDDEN");
   }
 

@@ -3,10 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireUser, hashPassword } from "@/lib/auth";
+import { hasPermission } from "@/lib/permissions";
 
 export async function createDoctor(formData: FormData) {
   const admin = await requireUser();
-  if (admin.role !== "ADMIN") throw new Error("FORBIDDEN");
+  if (!hasPermission(admin, "users:manage")) throw new Error("FORBIDDEN");
 
   const username = String(formData.get("username") ?? "").trim();
   const full_name = String(formData.get("full_name") ?? "").trim();
@@ -39,7 +40,7 @@ export async function createDoctor(formData: FormData) {
 
 export async function toggleDoctorActive(formData: FormData) {
   const admin = await requireUser();
-  if (admin.role !== "ADMIN") throw new Error("FORBIDDEN");
+  if (!hasPermission(admin, "users:manage")) throw new Error("FORBIDDEN");
 
   const id = Number(formData.get("id"));
   if (!id) throw new Error("Noto'g'ri ma'lumot.");

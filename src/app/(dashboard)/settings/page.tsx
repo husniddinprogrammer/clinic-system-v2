@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
+import { hasPermission } from "@/lib/permissions";
 import { getClinicSettings } from "@/lib/settings";
 import { Topbar } from "@/components/Topbar";
 import { SettingsPassword } from "@/components/SettingsPassword";
@@ -10,7 +11,21 @@ export default async function SettingsPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
+  if (!hasPermission(user, "settings:view")) {
+    return (
+      <>
+        <Topbar title="Sozlamalar" />
+        <main className="flex-1 p-6">
+          <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm">
+            Bu sahifaga kirish uchun ruxsat yo&apos;q.
+          </div>
+        </main>
+      </>
+    );
+  }
+
   const isAdmin = user.role === "ADMIN";
+  const canBackup = hasPermission(user, "backup:manage");
   const clinic = isAdmin ? await getClinicSettings() : null;
 
   return (
@@ -27,7 +42,7 @@ export default async function SettingsPage() {
 
         <SettingsPassword />
 
-        {isAdmin && <SettingsBackup />}
+        {canBackup && <SettingsBackup />}
 
         <div className="bg-white rounded-xl border border-slate-200 p-6">
           <h2 className="text-base font-semibold text-slate-800 mb-3">

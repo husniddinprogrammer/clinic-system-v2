@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
+import { getUserPermissions } from "@/lib/permissions";
 import { getClinicSettings } from "@/lib/settings";
 import { Sidebar } from "@/components/Sidebar";
 import { ensureDailyBackup } from "@/lib/backup";
@@ -20,6 +21,7 @@ export default async function DashboardLayout({
     <div className="flex h-screen overflow-hidden">
       <Sidebar
         role={user.role}
+        permissions={getUserPermissions(user)}
         fullName={user.full_name}
         clinicName={clinic.name}
         logoUrl={

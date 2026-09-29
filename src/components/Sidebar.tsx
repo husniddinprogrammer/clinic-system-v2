@@ -3,38 +3,43 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { Role } from "@prisma/client";
+import type { Permission } from "@/lib/permissions";
 import { Icon, IconName } from "./icons";
 
 type NavItem = {
   label: string;
   href: string;
   icon: IconName;
-  roles: Role[];
+  permission: Permission;
 };
 
 const NAV_ITEMS: NavItem[] = [
-  { label: "Tashriflar", href: "/visits", icon: "visits", roles: ["ADMIN", "DOCTOR"] },
-  { label: "Bemorlar", href: "/patients", icon: "patients", roles: ["ADMIN", "DOCTOR"] },
-  { label: "Hisobotlar", href: "/reports", icon: "reports", roles: ["ADMIN", "DOCTOR"] },
-  { label: "Doktorlar", href: "/doctors", icon: "doctors", roles: ["ADMIN"] },
-  { label: "User Management", href: "/users", icon: "users", roles: ["ADMIN"] },
-  { label: "Bildirishnomalar", href: "/notifications", icon: "bell", roles: ["ADMIN"] },
-  { label: "Sozlamalar", href: "/settings", icon: "settings", roles: ["ADMIN", "DOCTOR"] },
+  { label: "Tashriflar", href: "/visits", icon: "visits", permission: "visits:view" },
+  { label: "Bemorlar", href: "/patients", icon: "patients", permission: "patients:view" },
+  { label: "Hisobotlar", href: "/reports", icon: "reports", permission: "reports:view" },
+  { label: "Doktorlar", href: "/doctors", icon: "doctors", permission: "users:manage" },
+  { label: "User Management", href: "/users", icon: "users", permission: "users:manage" },
+  { label: "Bildirishnomalar", href: "/notifications", icon: "bell", permission: "notifications:view" },
+  { label: "Sozlamalar", href: "/settings", icon: "settings", permission: "settings:view" },
 ];
 
 export function Sidebar({
   role,
+  permissions,
   fullName,
   clinicName = "Klinika",
   logoUrl,
 }: {
   role: Role;
+  permissions: Permission[];
   fullName: string;
   clinicName?: string;
   logoUrl?: string | null;
 }) {
   const pathname = usePathname();
-  const items = NAV_ITEMS.filter((item) => item.roles.includes(role));
+  const items = NAV_ITEMS.filter((item) =>
+    permissions.includes(item.permission),
+  );
 
   return (
     <aside className="w-60 bg-slate-800 text-slate-100 flex flex-col h-full shrink-0">

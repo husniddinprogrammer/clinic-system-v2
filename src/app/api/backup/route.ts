@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import { hasPermission } from "@/lib/permissions";
 import {
   BACKUP_DIR,
   createBackupFile,
@@ -23,7 +24,7 @@ function isValidFileName(name: string): boolean {
 export async function GET(request: NextRequest) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
-  if (user.role !== "ADMIN") {
+  if (!hasPermission(user, "backup:manage")) {
     return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   }
 
@@ -81,7 +82,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
-  if (user.role !== "ADMIN") {
+  if (!hasPermission(user, "backup:manage")) {
     return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   }
 

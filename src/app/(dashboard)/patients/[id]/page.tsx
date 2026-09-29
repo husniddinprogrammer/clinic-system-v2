@@ -18,6 +18,7 @@ export default async function PatientProfilePage({
 }) {
   const user = await getCurrentUser();
   if (!user) notFound();
+  if (!hasPermission(user, "patients:view")) notFound();
 
   const { id } = await params;
   const patientId = Number(id);
@@ -45,7 +46,7 @@ export default async function PatientProfilePage({
   const [visits, visitsTotal, paymentAgg] = await Promise.all([
     prisma.visit.findMany({
       where: { patient_id: patientId, ...visitScope },
-      orderBy: { id: "asc" },
+      orderBy: { id: "desc" },
       include: { doctor: { select: { id: true, full_name: true } } },
       skip: (page - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
@@ -59,11 +60,11 @@ export default async function PatientProfilePage({
 
   const totalPages = Math.max(1, Math.ceil(visitsTotal / PAGE_SIZE));
 
-  const canEditPatient = hasPermission(user.role, "patients:edit");
-  const canDeletePatient = hasPermission(user.role, "patients:delete");
-  const canCreateVisit = hasPermission(user.role, "visits:create");
-  const canEditVisit = hasPermission(user.role, "visits:edit");
-  const canDeleteVisit = hasPermission(user.role, "visits:delete");
+  const canEditPatient = hasPermission(user, "patients:edit");
+  const canDeletePatient = hasPermission(user, "patients:delete");
+  const canCreateVisit = hasPermission(user, "visits:create");
+  const canEditVisit = hasPermission(user, "visits:edit");
+  const canDeleteVisit = hasPermission(user, "visits:delete");
 
   const doctors = isAdmin
     ? await prisma.user.findMany({
