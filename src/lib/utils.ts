@@ -65,6 +65,14 @@ export function formatPaymentType(type: string | null | undefined): string {
   return PAYMENT_TYPE_LABELS[type] ?? type;
 }
 
+export const ACTIVITY_TYPE_LABELS: Record<string, string> = {
+  PAYMENT: "To'lov",
+  VISIT: "Tashrif",
+  PATIENT: "Bemor",
+  DOCTOR: "Doktor",
+  LOGIN: "Kirish",
+};
+
 export function calcAge(birthDate: Date | null): string {
   if (!birthDate) return "-";
   const now = new Date();

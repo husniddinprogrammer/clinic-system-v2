@@ -6,6 +6,7 @@ import { hasPermission } from "@/lib/permissions";
 import { Topbar } from "@/components/Topbar";
 import { PatientActions } from "@/components/PatientActions";
 import { VisitActions } from "@/components/VisitActions";
+import { ExportButtons } from "@/components/ExportButtons";
 import { Pagination, PAGE_SIZE } from "@/components/Pagination";
 import { formatDate, formatMoney, formatPaymentType, toInputDate, calcAge } from "@/lib/utils";
 
@@ -148,15 +149,18 @@ export default async function PatientProfilePage({
           <h3 className="text-base font-semibold text-slate-800">
             Tashriflar ({visitsTotal})
           </h3>
-          {canCreateVisit && (
-            <VisitActions
-              mode="create"
-              doctors={doctors}
-              fixedPatientId={patient.id}
-              currentDoctorId={user.id}
-              isAdmin={isAdmin}
-            />
-          )}
+          <div className="flex items-center gap-2">
+            <ExportButtons type="patient" params={{ id: patientId }} />
+            {canCreateVisit && (
+              <VisitActions
+                mode="create"
+                doctors={doctors}
+                fixedPatientId={patient.id}
+                currentDoctorId={user.id}
+                isAdmin={isAdmin}
+              />
+            )}
+          </div>
         </div>
 
         <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { Topbar } from "@/components/Topbar";
 import { PatientActions } from "@/components/PatientActions";
+import { ExportButtons } from "@/components/ExportButtons";
 import { formatDate, formatMoney } from "@/lib/utils";
 import { hasPermission } from "@/lib/permissions";
 import { Pagination, PAGE_SIZE } from "@/components/Pagination";
@@ -99,7 +100,10 @@ export default async function PatientsPage({
               autoFocus={!!query}
             />
           </form>
-          {canCreate && <PatientActions mode="create" />}
+          <div className="flex items-center gap-2">
+            <ExportButtons type="patients" params={{ q: query }} />
+            {canCreate && <PatientActions mode="create" />}
+          </div>
         </div>
 
         <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">

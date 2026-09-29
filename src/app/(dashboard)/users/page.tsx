@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
 import { Topbar } from "@/components/Topbar";
 import { UserActions } from "@/components/UserActions";
+import { ExportButtons } from "@/components/ExportButtons";
 import { Pagination, PAGE_SIZE } from "@/components/Pagination";
 import { formatDate } from "@/lib/utils";
 
@@ -58,7 +59,10 @@ export default async function UsersPage({
           <p className="text-sm text-slate-500">
             Foydalanuvchilarni boshqarish. ADMIN yaratib bo'lmaydi.
           </p>
-          <UserActions mode="create" />
+          <div className="flex items-center gap-2">
+            <ExportButtons type="users" />
+            <UserActions mode="create" />
+          </div>
         </div>
 
         <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">

@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
 import { Topbar } from "@/components/Topbar";
 import { AddDoctorButton, DoctorToggleButton } from "@/components/DoctorActions";
+import { ExportButtons } from "@/components/ExportButtons";
 import { Pagination, PAGE_SIZE } from "@/components/Pagination";
 import { formatDate, formatMoney } from "@/lib/utils";
 
@@ -60,7 +61,10 @@ export default async function DoctorsPage({
           <p className="text-sm text-slate-500">
             Doktorlarni qo'shish va boshqarish.
           </p>
-          <AddDoctorButton />
+          <div className="flex items-center gap-2">
+            <ExportButtons type="doctors" />
+            <AddDoctorButton />
+          </div>
         </div>
 
         <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">

@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
 import { Topbar } from "@/components/Topbar";
 import { VisitActions } from "@/components/VisitActions";
+import { ExportButtons } from "@/components/ExportButtons";
 import { Pagination, PAGE_SIZE } from "@/components/Pagination";
 import {
   formatDate,
@@ -169,14 +170,17 @@ export default async function VisitsPage({
               </Link>
             )}
           </form>
-          {canCreate && (
-            <VisitActions
-              mode="create"
-              doctors={doctors}
-              currentDoctorId={user.id}
-              isAdmin={isAdmin}
-            />
-          )}
+          <div className="flex items-center gap-2">
+            <ExportButtons type="visits" params={{ from, to }} />
+            {canCreate && (
+              <VisitActions
+                mode="create"
+                doctors={doctors}
+                currentDoctorId={user.id}
+                isAdmin={isAdmin}
+              />
+            )}
+          </div>
         </div>
 
         <div className="mb-3 text-sm text-slate-600">

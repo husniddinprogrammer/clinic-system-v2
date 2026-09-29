@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
 import { Topbar } from "@/components/Topbar";
 import { Pagination, PAGE_SIZE } from "@/components/Pagination";
+import { ExportButtons } from "@/components/ExportButtons";
 import { formatDateTime } from "@/lib/utils";
 import type { ActivityType } from "@prisma/client";
 
@@ -79,6 +80,9 @@ export default async function NotificationsPage({
       <Topbar title="Bildirishnomalar" />
       <main className="flex-1 p-6">
         <div className="flex items-center gap-2 mb-4 flex-wrap">
+          <div className="ml-auto order-last">
+            <ExportButtons type="notifications" params={{ type }} />
+          </div>
           {TABS.map((tab) => {
             const active = tab.value === type || (!tab.value && !type);
             return (
