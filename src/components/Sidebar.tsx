@@ -16,8 +16,11 @@ type NavItem = {
 const NAV_ITEMS: NavItem[] = [
   { label: "Tashriflar", href: "/visits", icon: "visits", permission: "visits:view" },
   { label: "Bemorlar", href: "/patients", icon: "patients", permission: "patients:view" },
+  { label: "Texnik ishlar", href: "/labworks", icon: "labworks", permission: "labworks:view" },
+  { label: "Xarajatlar", href: "/expenses", icon: "expenses", permission: "expenses:view" },
   { label: "Hisobotlar", href: "/reports", icon: "reports", permission: "reports:view" },
   { label: "Doktorlar", href: "/doctors", icon: "doctors", permission: "users:manage" },
+  { label: "Xodimlar", href: "/employees", icon: "employees", permission: "employees:manage" },
   { label: "User Management", href: "/users", icon: "users", permission: "users:manage" },
   { label: "Bildirishnomalar", href: "/notifications", icon: "bell", permission: "notifications:view" },
   { label: "Sozlamalar", href: "/settings", icon: "settings", permission: "settings:view" },

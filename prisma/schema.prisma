@@ -44,7 +44,8 @@ model Patient {
   created_at DateTime  @default(now())
   updated_at DateTime  @updatedAt
 
-  visits Visit[]
+  visits   Visit[]
+  labWorks LabWork[]
 
   @@index([full_name])
   @@index([phone])
@@ -78,6 +79,75 @@ enum ActivityType {
   PATIENT
   DOCTOR
   LOGIN
+  EXPENSE
+  LABWORK
+  EMPLOYEE
+}
+
+enum ExpenseCategory {
+  DOSTAVKA
+  OVQAT
+  ISHCHI
+  BOSHQA
+}
+
+enum LabWorkType {
+  ZIRCON
+  MK_500
+  CLITOY_300
+  TITAN_250
+}
+
+model Employee {
+  id         Int      @id @default(autoincrement())
+  first_name String
+  last_name  String
+  position   String
+  is_active  Boolean  @default(true)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  expenses Expense[]
+  labWorks LabWork[]
+
+  @@index([last_name])
+}
+
+model Expense {
+  id          Int             @id @default(autoincrement())
+  category    ExpenseCategory
+  amount      Decimal         @db.Decimal(12, 2)
+  description String?
+  date        DateTime        @default(now())
+  employee_id Int?
+  is_active   Boolean         @default(true)
+  created_at  DateTime        @default(now())
+  updated_at  DateTime        @updatedAt
+
+  employee Employee? @relation(fields: [employee_id], references: [id], onDelete: SetNull)
+
+  @@index([date])
+  @@index([category])
+}
+
+model LabWork {
+  id           Int          @id @default(autoincrement())
+  patient_id   Int
+  employee_id  Int
+  work_type    LabWorkType
+  work_date    DateTime     @default(now())
+  price        Decimal      @db.Decimal(12, 2)
+  payment_type PaymentType?
+  is_active    Boolean      @default(true)
+  created_at   DateTime     @default(now())
+  updated_at   DateTime     @updatedAt
+
+  patient  Patient  @relation(fields: [patient_id], references: [id], onDelete: Cascade)
+  employee Employee @relation(fields: [employee_id], references: [id], onDelete: Restrict)
+
+  @@index([patient_id])
+  @@index([employee_id])
+  @@index([work_date])
 }
 
 model ActivityLog {

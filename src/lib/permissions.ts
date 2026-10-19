@@ -11,6 +11,15 @@ export type Permission =
   | "visits:edit"
   | "visits:delete"
   | "reports:view"
+  | "expenses:view"
+  | "expenses:create"
+  | "expenses:edit"
+  | "expenses:delete"
+  | "labworks:view"
+  | "labworks:create"
+  | "labworks:edit"
+  | "labworks:delete"
+  | "employees:manage"
   | "notifications:view"
   | "users:manage"
   | "backup:manage"
@@ -27,6 +36,15 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   "visits:edit": "Tashrifni tahrirlash",
   "visits:delete": "Tashrifni deaktiv/aktiv qilish",
   "reports:view": "Hisobotlar",
+  "expenses:view": "Xarajatlarni ko'rish",
+  "expenses:create": "Xarajat qo'shish",
+  "expenses:edit": "Xarajatni tahrirlash",
+  "expenses:delete": "Xarajatni o'chirish",
+  "labworks:view": "Texnik ishlarni ko'rish",
+  "labworks:create": "Texnik ish qo'shish",
+  "labworks:edit": "Texnik ishni tahrirlash",
+  "labworks:delete": "Texnik ishni o'chirish",
+  "employees:manage": "Xodimlarni boshqarish",
   "notifications:view": "Bildirishnomalar",
   "users:manage": "User Management",
   "backup:manage": "Backup boshqaruvi",

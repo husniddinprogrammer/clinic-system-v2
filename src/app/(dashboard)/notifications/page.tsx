@@ -15,6 +15,9 @@ const TYPE_LABELS: Record<ActivityType, string> = {
   PATIENT: "Bemor",
   DOCTOR: "Doktor",
   LOGIN: "Kirish",
+  EXPENSE: "Xarajat",
+  LABWORK: "Texnik ish",
+  EMPLOYEE: "Xodim",
 };
 
 const TYPE_STYLES: Record<ActivityType, string> = {
@@ -23,6 +26,9 @@ const TYPE_STYLES: Record<ActivityType, string> = {
   PATIENT: "bg-violet-100 text-violet-700",
   DOCTOR: "bg-amber-100 text-amber-700",
   LOGIN: "bg-slate-200 text-slate-700",
+  EXPENSE: "bg-red-100 text-red-700",
+  LABWORK: "bg-indigo-100 text-indigo-700",
+  EMPLOYEE: "bg-cyan-100 text-cyan-700",
 };
 
 const TABS: { label: string; value?: ActivityType }[] = [
@@ -31,6 +37,9 @@ const TABS: { label: string; value?: ActivityType }[] = [
   { label: "Tashriflar", value: "VISIT" },
   { label: "Bemorlar", value: "PATIENT" },
   { label: "Doktorlar", value: "DOCTOR" },
+  { label: "Xarajatlar", value: "EXPENSE" },
+  { label: "Texnik ishlar", value: "LABWORK" },
+  { label: "Xodimlar", value: "EMPLOYEE" },
   { label: "Kirishlar", value: "LOGIN" },
 ];
 

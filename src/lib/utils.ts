@@ -71,7 +71,34 @@ export const ACTIVITY_TYPE_LABELS: Record<string, string> = {
   PATIENT: "Bemor",
   DOCTOR: "Doktor",
   LOGIN: "Kirish",
+  EXPENSE: "Xarajat",
+  LABWORK: "Texnik ish",
+  EMPLOYEE: "Xodim",
 };
+
+export const EXPENSE_CATEGORY_LABELS: Record<string, string> = {
+  DOSTAVKA: "Dostavka",
+  OVQAT: "Ovqat",
+  ISHCHI: "Ishchilarga",
+  BOSHQA: "Boshqa",
+};
+
+export function formatExpenseCategory(category: string | null | undefined): string {
+  if (!category) return "-";
+  return EXPENSE_CATEGORY_LABELS[category] ?? category;
+}
+
+export const LABWORK_TYPE_LABELS: Record<string, string> = {
+  ZIRCON: "Tsirkon",
+  MK_500: "MK-500",
+  CLITOY_300: "Clitoy-300",
+  TITAN_250: "Titan-250",
+};
+
+export function formatLabWorkType(type: string | null | undefined): string {
+  if (!type) return "-";
+  return LABWORK_TYPE_LABELS[type] ?? type;
+}
 
 export function calcAge(birthDate: Date | null): string {
   if (!birthDate) return "-";
